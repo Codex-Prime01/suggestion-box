@@ -1,0 +1,243 @@
+{
+  "ciphertext": "a6vXrtmN1shoWD6D+3U6ImdJ7CNuaUUDI/RegP74aWWNSUdSW3hnjGJUc+xI/fqkqkp7lcQLkb1ZA9IUyovSqQLdhXPO8JFlBtJCwYfheKyr2ZA6I/snhB+zoQp7ypkmTFPgG71SOXK260j089NZ+4GwJLlq3m0mL41J5Id/V0lU/3TMdjJp1k9CR+Mb2ZfUntVdN8TesSldPKeplD8WkKUo3SnLnt4834ie/aiaUsON1kri0RFvE++HRdeoUiUvEf7APLHre3+Ru3U2F+Fu",
+  "theme": {
+    "--bg": "#2f3a24",
+    "--text": "#f1f3ea",
+    "--muted": "#c9d1b5",
+    "--card": "rgba(20, 26, 15, .78)",
+    "--card-border": "rgba(255,255,255,.12)",
+    "--accent": "#c8b35a",
+    "--accent-text": "#1b1f12",
+    "--chip": "rgba(255,255,255,.08)"
+  },
+  "step1": {
+    "form": {
+      "x": 400,
+      "y": 132,
+      "w": 480,
+      "h": 500,
+      "radius": "16px",
+      "bg": "rgba(20, 26, 15, 0.78)",
+      "color": "rgb(241, 243, 234)",
+      "font": "16px 400",
+      "text": "STEP 1 OF 2 \u00b7 ABOUT YOU\nUnit \u00b7 required\n\nEverything below is optional. Share only what you're comfortable with.\n\nFull na"
+    },
+    "header": {
+      "x": 456,
+      "y": 56,
+      "w": 257.765625,
+      "h": 36,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(241, 243, 234)",
+      "font": "30px 400",
+      "text": "Suggestion Box"
+    },
+    "sub": {
+      "x": 456,
+      "y": 92,
+      "w": 257.765625,
+      "h": 20,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(201, 209, 181)",
+      "font": "14px 400",
+      "text": "Goes straight to the commanding officer"
+    },
+    "label": {
+      "x": 425,
+      "y": 157,
+      "w": 155.8125,
+      "h": 16,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(201, 209, 181)",
+      "font": "12px 600",
+      "text": "STEP 1 OF 2 \u00b7 ABOUT YOU"
+    },
+    "unitLabel": {
+      "x": 425,
+      "y": 207,
+      "w": 430,
+      "h": 20,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(241, 243, 234)",
+      "font": "14px 600",
+      "text": "Unit \u00b7 required"
+    },
+    "unit": {
+      "x": 425,
+      "y": 231,
+      "w": 430,
+      "h": 42,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.92)",
+      "color": "rgb(15, 23, 42)",
+      "font": "16px 400",
+      "text": "e.g. Alpha Coy, 21 Bde"
+    },
+    "hint": {
+      "x": 425,
+      "y": 285,
+      "w": 430,
+      "h": 16,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(201, 209, 181)",
+      "font": "12px 400",
+      "text": "Everything below is optional. Share only what you're comfortable with."
+    },
+    "name": {
+      "x": 425,
+      "y": 337,
+      "w": 430,
+      "h": 42,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.92)",
+      "color": "rgb(15, 23, 42)",
+      "font": "16px 400",
+      "text": ""
+    },
+    "next": {
+      "x": 425,
+      "y": 555,
+      "w": 430,
+      "h": 52,
+      "radius": "12px",
+      "bg": "rgb(200, 179, 90)",
+      "color": "rgb(27, 31, 18)",
+      "font": "18px 700",
+      "text": "Next \u2192"
+    },
+    "backBtn": {
+      "x": 400,
+      "y": 62,
+      "w": 44,
+      "h": 44,
+      "radius": "12px",
+      "bg": "rgb(200, 179, 90)",
+      "color": "rgb(27, 31, 18)",
+      "font": "16px 400",
+      "text": ""
+    }
+  },
+  "step2": {
+    "form": {
+      "x": 400,
+      "y": 132,
+      "w": 480,
+      "h": 641,
+      "radius": "16px",
+      "bg": "rgba(20, 26, 15, 0.78)",
+      "color": "rgb(241, 243, 234)",
+      "font": "16px 400",
+      "text": "STEP 2 OF 2 \u00b7 YOUR MESSAGE\nFrom: Name not given \u00b7 Alpha Coy\nEdit\nType\nComplaint\nSuggestion\nWelfare\nOther\nMessage \u00b7 requi"
+    },
+    "label": {
+      "x": 425,
+      "y": 157,
+      "w": 184.890625,
+      "h": 16,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(201, 209, 181)",
+      "font": "12px 600",
+      "text": "STEP 2 OF 2 \u00b7 YOUR MESSAGE"
+    },
+    "fromChip": {
+      "x": 425,
+      "y": 207,
+      "w": 430,
+      "h": 36,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(241, 243, 234)",
+      "font": "14px 400",
+      "text": "From: Name not given \u00b7 Alpha Coy\nEdit"
+    },
+    "chip": {
+      "x": 425,
+      "y": 287,
+      "w": 101.5,
+      "h": 36,
+      "radius": "8px",
+      "bg": "rgb(200, 179, 90)",
+      "color": "rgb(27, 31, 18)",
+      "font": "14px 600",
+      "text": "Complaint"
+    },
+    "body": {
+      "x": 425,
+      "y": 363,
+      "w": 430,
+      "h": 162,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.92)",
+      "color": "rgb(15, 23, 42)",
+      "font": "16px 400",
+      "text": "Say what's on your mind. Be as clear as you can."
+    },
+    "photos": {
+      "x": 425,
+      "y": 548,
+      "w": 430,
+      "h": 44,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(241, 243, 234)",
+      "font": "14px 400",
+      "text": "Add photos \u00b7 up to 3, optional"
+    },
+    "photoHint": {
+      "x": 425,
+      "y": 600,
+      "w": 430,
+      "h": 16,
+      "radius": "0px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "color": "rgb(201, 209, 181)",
+      "font": "12px 400",
+      "text": "Hidden location and phone details are removed from photos before sending."
+    },
+    "lockNote": {
+      "x": 425,
+      "y": 632,
+      "w": 430,
+      "h": 48,
+      "radius": "8px",
+      "bg": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(201, 209, 181)",
+      "font": "12px 400",
+      "text": "\ud83d\udd12 Locked on this device before it leaves. Only the commanding officer can unlock it. Once sent, you can't view, edit or"
+    },
+    "submit": {
+      "x": 478.8125,
+      "y": 696,
+      "w": 376.1875,
+      "h": 52,
+      "radius": "12px",
+      "bg": "rgb(200, 179, 90)",
+      "color": "rgb(27, 31, 18)",
+      "font": "18px 700",
+      "text": "Drop it in the box"
+    },
+    "back": {
+      "x": 425,
+      "y": 696,
+      "w": 45.8125,
+      "h": 52,
+      "radius": "12px",
+      "bg": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(241, 243, 234)",
+      "font": "16px 600",
+      "text": "\u2190"
+    }
+  },
+  "categories": [
+    "Complaint",
+    "Suggestion",
+    "Welfare",
+    "Other"
+  ]
+}

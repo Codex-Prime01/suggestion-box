@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Promo soundtrack</title></head>
+<body>
+<!--
+  Soundtrack composed in code (no third-party audio). 120 BPM, 16 s. render.py calls window.renderWav().
+  Every effect is placed so its PEAK (not its start) lands on the event time.
+-->
+<script>
+"use strict";
+const SR = 48000, DUR = 16, BEAT = 0.5;
+// event times shared with promo.html's storyboard
+const SWOOSH = [1.75, 2.2, 2.65, 3.85, 5.85, 6.25, 8.2, 10.2, 11.7, 14.25];
+const CLICK = [2.5, 3.5, 4.0, 4.45, 5.45, 6.0, 12.0, 12.45];
+const SCENE = [2, 4, 6, 8, 10, 14];
+
+function noiseBuffer(ctx, secs) {
+  const b = ctx.createBuffer(1, Math.ceil(secs * SR), SR), d = b.getChannelData(0);
+  let s = 1234567;
+  for (let i = 0; i < d.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; d[i] = s / 0x3fffffff - 1; }
+  return b;
+}
+
+function kick(ctx, out, t, gain = 0.55) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.18);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+  o.connect(g).connect(out); o.start(t); o.stop(t + 0.35);
+}
+
+function swoosh(ctx, out, peak, noise) {
+  const dur = 0.32, start = peak - dur * 0.7; // peak at 70% of the sound
+  const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+  src.buffer = noise; bp.type = "bandpass"; bp.Q.value = 1.2;
+  bp.frequency.setValueAtTime(700, start); bp.frequency.exponentialRampToValueAtTime(3200, peak);
+  bp.frequency.exponentialRampToValueAtTime(1500, start + dur);
+  g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(0.16, peak);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  src.connect(bp).connect(g).connect(out); src.start(start, (peak * 0.37) % 3); src.stop(start + dur + 0.02);
+}
+
+function click(ctx, out, t, noise) {
+  const src = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+  src.buffer = noise; hp.type = "highpass"; hp.frequency.value = 2500;
+  g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+  src.connect(hp).connect(g).connect(out); src.start(t, 0.3); src.stop(t + 0.03);
+}
+
+function hit(ctx, out, t, noise, big) {
+  // low body + short metallic snap (the padlock), bigger on the payoff
+  kick(ctx, out, t, big ? 0.9 : 0.7);
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = "square"; o.frequency.setValueAtTime(big ? 1200 : 1800, t);
+  g.gain.setValueAtTime(big ? 0.05 : 0.07, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+  o.connect(g).connect(out); o.start(t); o.stop(t + 0.08);
+  const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), ng = ctx.createGain();
+  src.buffer = noise; lp.type = "lowpass"; lp.frequency.value = big ? 5000 : 3000;
+  ng.gain.setValueAtTime(big ? 0.3 : 0.18, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + (big ? 0.6 : 0.2));
+  src.connect(lp).connect(ng).connect(out); src.start(t, 1); src.stop(t + 0.7);
+  if (big) {
+    const sub = ctx.createOscillator(), sg = ctx.createGain();
+    sub.frequency.value = 55; sg.gain.setValueAtTime(0.35, t); sg.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    sub.connect(sg).connect(out); sub.start(t); sub.stop(t + 1.3);
+  }
+}
+
+function pad(ctx, out) {
+  // A minor -> F -> C -> G, one chord per 2 bars, soft and low
+  const chords = [[110, 130.81, 164.81], [87.31, 110, 130.81], [130.81, 164.81, 196], [98, 123.47, 146.83]];
+  const lp = ctx.createBiquadFilter(), g = ctx.createGain();
+  lp.type = "lowpass"; lp.frequency.value = 650;
+  g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.05, 1.0);
+  g.gain.setValueAtTime(0.05, 15.4); g.gain.exponentialRampToValueAtTime(0.0001, 16);
+  lp.connect(g).connect(out);
+  chords.forEach((ch, i) => ch.forEach((f) => [-4, 4].forEach((det) => {
+    const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.detune.value = det;
+    o.connect(lp); o.start(i * 4); o.stop(i * 4 + 4.02);
+  })));
+}
+
+function wav(buf) {
+  const ch = [buf.getChannelData(0), buf.getChannelData(1)], n = ch[0].length;
+  const ab = new ArrayBuffer(44 + n * 4), v = new DataView(ab);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 4, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true); v.setUint32(24, SR, true);
+  v.setUint32(28, SR * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 4, true);
+  for (let i = 0, o = 44; i < n; i++) for (let c = 0; c < 2; c++, o += 2) v.setInt16(o, Math.max(-1, Math.min(1, ch[c][i])) * 32767, true);
+  let s = ""; const u = new Uint8Array(ab);
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+window.renderWav = async () => {
+  const ctx = new OfflineAudioContext(2, SR * DUR, SR);
+  const master = ctx.createDynamicsCompressor();
+  master.threshold.value = -14; master.ratio.value = 3;
+  master.connect(ctx.destination);
+  const noise = noiseBuffer(ctx, 4);
+  pad(ctx, master);
+  for (let b = 0; b < 31; b++) kick(ctx, master, b * BEAT, b % 4 === 0 ? 0.6 : 0.42); // a kick on every beat, accent on downbeats
+  SWOOSH.forEach((t) => swoosh(ctx, master, t, noise));
+  CLICK.forEach((t) => click(ctx, master, t, noise));
+  SCENE.forEach((t) => click(ctx, master, t + 0.001, noise)); // a soft tick marks each scene change
+  hit(ctx, master, 7.0, noise, false);   // padlock snaps shut
+  hit(ctx, master, 12.0, noise, true);   // the payoff
+  return wav(await ctx.startRendering());
+};
+</script>
+</body>
+</html>

@@ -1,49 +1,128 @@
 /*
   Intro page motion.
-  Rules: one accent colour (the through-line object + one key word), smooth
-  ease-out curves (no bounce), things are revealed by masks or grow — they
-  never pop out of nothing. Everything is switched off for people who ask
-  their phone for reduced motion.
+  Rules: one accent colour (the through-line object + one key word), 120 BPM
+  (a beat is 0.5s), springs with only a small overshoot, things are revealed
+  by masks or grow, they never pop out of nothing.
+
+  The default styles below are the calm FINAL picture. All motion lives inside
+  @media (prefers-reduced-motion: no-preference), so people who ask for less
+  motion simply see the end state.
+
+  Hero story (the note is the through-line object), times from page load:
+    0.5  note unfolds above the box
+    1.0  line 1 is written    1.5 line 2    2.0 line 3
+    2.5  note folds           3.0 note drops into the slot
+    3.5  box nudges, shackle snaps shut, lock fills with the accent
+    4.0  "sealed" turns accent, LOCKED wipes in
+    0-6  the art slowly pushes in (1.0 -> 1.04)
+  intro.js restarts it when the hero scrolls back into view.
 */
-.intro { --ease: cubic-bezier(.16, 1, .3, 1); --ease-in-out: cubic-bezier(.65, 0, .35, 1); }
+.intro {
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-in: cubic-bezier(.55, 0, .9, .4);
+  /* critically-damped-ish spring, about 3% overshoot */
+  --spring: linear(0, .27 8%, .62 18%, .88 29%, 1.02 41%, 1.03 50%, 1.01 64%, 1);
+}
 .accent-text { color: var(--accent); }
 
 .hero-title { font-size: clamp(2.9rem, 7.4vw, 5.75rem); letter-spacing: -.035em; }
 .mask { display: block; overflow: hidden; padding-bottom: .06em; }
-.rise { display: inline-block; animation: rise .9s var(--ease) var(--d, 0s) both; }
-.fade-up { animation: fadeUp .8s var(--ease) var(--d, 0s) both; }
-
-@keyframes rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.rise { display: inline-block; }
 
 /* ---- the through-line object: note -> box -> padlock ---- */
 .hero-art svg { overflow: visible; }
 .paper { fill: #f4f1e6; }
 .paper-fold { fill: none; stroke: #c9c3ad; stroke-width: 2; stroke-linejoin: round; }
-.paper-lines { stroke: #b9b39c; stroke-width: 3; stroke-linecap: round; }
+.paper-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
 .box-body { fill: var(--card); stroke: var(--card-border); stroke-width: 2; }
 .box-slot { fill: rgba(0, 0, 0, .55); }
-.shackle { fill: none; stroke: var(--muted); stroke-width: 6; stroke-linecap: round; }
-.lock-body { fill: var(--muted); }
+.shackle { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
+.lock-body { fill: var(--accent); }
 .keyhole, .keyhole-line { fill: var(--card); stroke: var(--card); stroke-width: 3; stroke-linecap: round; }
+.locked-tag { color: var(--accent); margin-top: .25rem; }
 
-.note { animation: noteDrop 1.15s var(--ease-in-out) .55s both; }
-@keyframes noteDrop {
-  0%   { transform: translate(0, -30px) rotate(-6deg); }
-  45%  { transform: translate(0, 18px) rotate(0deg); }
-  100% { transform: translate(0, 118px) rotate(0deg); }
+/* Final resting place of the note: inside the box, hidden by the clip above the slot */
+.note { transform: translateY(118px); }
+.note-paper, .shackle, .box-group { transform-box: fill-box; }
+.note-paper { transform-origin: 50% 0%; }
+.shackle { transform-origin: 50% 100%; }
+.box-group { transform-origin: 50% 100%; }
+.hero-cam { transform-origin: 50% 60%; scale: 1.04; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero.play .rise { animation: rise .9s var(--ease) var(--d, 0s) both; }
+  .hero.play .fade-up { animation: fadeUp .8s var(--ease) var(--d, 0s) both; }
+
+  .hero.play .hero-cam { animation: camPush 6s linear both; }
+
+  .hero.play .note-paper {
+    animation:
+      unfold .5s var(--spring) .5s both,
+      fold .35s var(--ease-in-out) 2.5s forwards;
+  }
+  .hero.play .paper-line { stroke-dasharray: 1; animation: write .4s var(--ease) var(--d) both; }
+  .hero.play .note { animation: noteDrop .55s var(--ease-in) 3s both; }
+  .hero.play .box-group { animation: nudge .5s var(--spring) 3.5s both; }
+  .hero.play .shackle { animation: shackleClose .45s var(--spring) 3.5s both; }
+  .hero.play .lock-body { animation: lockFill .3s var(--ease) 3.6s both; }
+  .hero.play .sealed { animation: keyWord .35s var(--ease) 4s both; }
+  .hero.play .locked-tag { animation: wipe .6s var(--ease) 4s both; }
 }
-.shackle { transform-box: fill-box; transform-origin: 50% 100%; animation: shackleClose .45s var(--ease) 1.7s both; }
+
+@keyframes rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
+/* masked + slight lift: grows into place, no plain fade */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); clip-path: inset(0 0 100% 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 -20% 0); }
+}
+@keyframes camPush { from { scale: 1; } to { scale: 1.04; } }
+@keyframes unfold { from { scale: 1 .04; } to { scale: 1 1; } }
+@keyframes fold { to { scale: 1 .5; } }
+@keyframes write { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes noteDrop { from { transform: translateY(0); } to { transform: translateY(118px); } }
+@keyframes nudge { 0% { translate: 0 5px; } 100% { translate: 0 0; } }
 @keyframes shackleClose {
-  from { transform: translateY(-9px); }
-  to   { transform: translateY(0); stroke: var(--accent); }
+  from { translate: 0 -9px; stroke: var(--muted); }
+  to { translate: 0 0; stroke: var(--accent); }
 }
-.lock-body { animation: lockFill .35s var(--ease) 1.85s both; }
-@keyframes lockFill { to { fill: var(--accent); } }
-.locked-tag { color: var(--accent); clip-path: inset(0 100% 0 0); animation: wipe .6s var(--ease) 2.05s both; margin-top: .25rem; }
-@keyframes wipe { to { clip-path: inset(0 0 0 0); } }
+@keyframes lockFill { from { fill: var(--muted); } to { fill: var(--accent); } }
+@keyframes keyWord { from { color: var(--muted); } to { color: var(--accent); } }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
-/* ---- scroll reveals (intro.js adds .is-in) ---- */
+/* ---- the promo loop in the hero (intro.js adds .has-video when it may play) ---- */
+.hero-screen {
+  display: none; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 1.25rem;
+  background: var(--card); border: 1px solid var(--card-border);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .65);
+}
+.hero-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hero.has-video .hero-screen { display: block; }
+.hero.has-video .hero-art { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .hero.play.has-video .hero-screen { animation: screenIn .9s var(--ease) .15s both; }
+}
+@keyframes screenIn {
+  from { clip-path: inset(10% 8% 10% 8% round 1.25rem); transform: translateY(18px); }
+  to { clip-path: inset(0 0 0 0 round 1.25rem); transform: none; }
+}
+
+/* ---- scroll reveals ---- */
+/* 1) Browsers with scroll-driven animations: tied to scroll position, plays both ways */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .reveal {
+      animation: reveal auto linear backwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+  }
+}
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(32px); clip-path: inset(0 0 30% 0 round 1rem); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 1rem); }
+}
+/* 2) Fallback (e.g. Firefox): intro.js adds .js-reveal and .is-in */
 .js-reveal .reveal { opacity: 0; transform: translateY(24px); clip-path: inset(0 0 12% 0 round 1rem); }
 .js-reveal .reveal.is-in {
   opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 1rem);
@@ -56,8 +135,3 @@
 }
 .promise { display: flex; flex-direction: column; gap: .35rem; padding-left: 1rem; border-left: 2px solid var(--card-border); }
 .promise strong { font-size: 1.125rem; }
-
-@media (prefers-reduced-motion: reduce) {
-  .rise, .fade-up, .note, .shackle, .lock-body, .locked-tag { animation-duration: .01s !important; animation-delay: 0s !important; }
-  .js-reveal .reveal { opacity: 1; transform: none; clip-path: none; transition: none; }
-}

@@ -72,6 +72,17 @@ class SenderSideTests(TestCase):
         self.assertContains(r, reverse("box:drop"))
         self.assertContains(r, "the commanding officer")  # no name set yet -> generic
 
+    def test_intro_hero_video_is_self_hosted_with_fallback(self):
+        # rule 8: self-hosted only. The SVG story stays as the fallback (no JS, reduced motion, data saver)
+        r = self.client.get(reverse("box:intro"))
+        self.assertContains(r, 'preload="none"')
+        self.assertContains(r, "/static/video/hero-loop.webm")
+        self.assertContains(r, "/static/video/hero-loop.mp4")
+        self.assertContains(r, 'class="hero-art')
+        self.assertNotContains(r, "<video autoplay")
+        self.assertNotContains(r, "{#")  # multi-line {# #} comments leak onto the page
+        self.assertIn("media-src 'self'", r["Content-Security-Policy"])
+
     def test_owner_name_shows_when_set(self):
         self.box.owner_display_name = "Lt Col A. Bello"; self.box.save()
         self.assertContains(self.client.get(reverse("box:intro")), "Lt Col A. Bello")

@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Suggestion Box promo</title>
+<!--
+  16 s promo, 120 BPM (0.5 s per beat, 8 bars). Open via a local web server (render.py does this).
+  Everything on screen is computed from time inside window.seek(t): no CSS animations, no timers,
+  no state carried between frames. ?mode=v gives the vertical 1080x1920 cut.
+  The through-line object is THE NOTE (#note). See the storyboard in promo/README.md.
+-->
+<style>
+  @font-face { font-family: Saira; font-weight: 400; src: url("../static/fonts/saira-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: Saira; font-weight: 600; src: url("../static/fonts/saira-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: Saira; font-weight: 700; src: url("../static/fonts/saira-latin-700-normal.woff2") format("woff2"); }
+  :root {
+    --bg: #2f3a24; --dark: #141a0f; --text: #f1f3ea; --muted: #c9d1b5; --card: rgba(20, 26, 15, .78);
+    --card-border: rgba(255,255,255,.12); --accent: #c8b35a; --accent-text: #1b1f12; --chip: rgba(255,255,255,.08);
+    --paper: #f4f1e6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #000; overflow: hidden; }
+  body { font-family: Saira, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  .v #stage { width: 1080px; height: 1920px; }
+  #dark { position: absolute; inset: 0; background: var(--dark); }
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .abs { position: absolute; }
+  #overlay { position: absolute; inset: 0; transform-origin: 50% 50%; pointer-events: none; }
+  #fade { position: absolute; inset: 0; background: #000; }
+
+  /* hook */
+  #hook { left: 960px; top: 540px; width: 1700px; transform: translate(-50%, -50%); text-align: center;
+          font-size: 150px; font-weight: 700; letter-spacing: -.03em; line-height: 1.02; }
+  .v #hook { width: 900px; }
+  .mask { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .04em .08em; }
+  .w { display: inline-block; }
+
+  /* real UI, rebuilt (sizes measured from the running app: promo/ui.json) */
+  .card { background: var(--card); border: 1px solid var(--card-border); }
+  .chip { background: var(--chip); }
+  .muted { color: var(--muted); }
+  .field { background: rgba(255,255,255,.92); border-radius: 8px; color: #0f172a; font-size: 16px; padding: 0 12px;
+           display: flex; align-items: center; height: 42px; white-space: nowrap; overflow: hidden; }
+  .field.ph { color: #8a8f86; }
+  .lbl { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .lbl span { font-weight: 400; color: var(--muted); }
+  .steplbl { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .bars { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 20px; }
+  .bars i { height: 6px; border-radius: 99px; background: var(--chip); }
+  .bars i.on { background: rgba(241,243,234,.45); }
+  #card { left: 720px; top: 220px; width: 480px; border-radius: 16px; overflow: hidden; }
+  .pane { position: absolute; left: 0; top: 0; width: 480px; padding: 24px; }
+  .stack > * + * { margin-top: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .slot { height: 52px; border-radius: 12px; }
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .chips div { height: 36px; border-radius: 8px; background: var(--chip); display: flex; align-items: center;
+               justify-content: center; font-size: 14px; font-weight: 600; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .photorow { height: 44px; border-radius: 8px; padding: 0 12px; font-size: 14px; }
+  .tiny { font-size: 12px; }
+  .locknote { border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  #thumb { width: 96px; height: 64px; border-radius: 8px; overflow: hidden; position: relative; margin-top: 8px; }
+  #pin { position: absolute; right: 6px; top: 4px; }
+
+  /* box (the intro hero art at 2x) */
+  #box { left: 720px; top: 320px; width: 480px; height: 480px; overflow: visible; }
+
+  /* ciphertext */
+  #cipher { left: 510px; top: 300px; width: 900px; height: 480px; overflow: hidden; }
+  #cipherIn { position: absolute; left: 0; top: 0; width: 100%; }
+  .cl { height: 60px; display: flex; align-items: center; font-size: 30px; font-weight: 500; letter-spacing: .02em;
+        color: var(--muted); white-space: nowrap; padding: 0 20px; position: relative; }
+  .cl b { position: relative; font-weight: 600; }
+
+  /* owner side */
+  #owner { left: 0; top: 0; width: 1920px; height: 1080px; }
+  #pass { left: 750px; top: 460px; width: 420px; height: 56px; border-radius: 8px; background: rgba(255,255,255,.92);
+          display: flex; align-items: center; padding: 0 18px; gap: 14px; }
+  #pass i { width: 16px; height: 16px; border-radius: 99px; background: #0f172a; display: block; }
+  .irow { left: 580px; width: 760px; height: 88px; border-radius: 12px; padding: 14px 16px; }
+  .irow .meta { display: flex; gap: 8px; align-items: center; font-size: 14px; white-space: nowrap; }
+  .irow .meta .pill { border-radius: 4px; padding: 1px 8px; font-size: 12px; }
+  .irow .meta .new { border: 1px solid rgba(241,243,234,.45); font-weight: 700; }
+  .irow .prev { margin-top: 8px; font-size: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; }
+
+  /* message detail */
+  #detail { left: 600px; top: 250px; width: 720px; border-radius: 16px; padding: 24px; }
+  #detail dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 14px; }
+  #detail dt { color: var(--muted); } #detail dd { font-weight: 600; }
+  #detail hr { border: 0; border-top: 1px solid rgba(255,255,255,.2); margin: 18px 0; }
+  #dbody { font-size: 18px; line-height: 1.55; }
+  #dnotes { margin-top: 18px; border-radius: 12px; padding: 16px; }
+  #statusSlot { width: 150px; height: 34px; border-radius: 99px; }
+  #logoTop { left: 820px; top: 270px; width: 280px; height: 280px; overflow: visible; }
+
+  /* end card */
+  #logo { left: 820px; top: 270px; width: 280px; height: 280px; overflow: visible; }
+  #endText { left: 360px; top: 590px; width: 1200px; text-align: center; }
+  #endText .t { font-size: 92px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
+  #endText .p { font-size: 40px; font-weight: 500; color: var(--muted); margin-top: 10px; letter-spacing: -.01em; }
+  #endText .l { font-size: 28px; font-weight: 500; color: rgba(201,209,181,.7); margin-top: 18px; }
+
+  /* the through-line object */
+  #note { left: 0; top: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;
+          font-weight: 700; color: var(--accent-text); white-space: nowrap; }
+  #noteLines { position: absolute; left: 16%; right: 22%; top: 20%; }
+  #noteLines i { display: block; height: 7px; border-radius: 4px; background: var(--accent); margin-bottom: 11px; transform-origin: 0 50%; }
+  #noteFold { position: absolute; right: 0; top: 0; width: 22%; aspect-ratio: 1; background: linear-gradient(225deg, #2f3a24 50%, #d9d3bd 50%); }
+  #noteLabel { position: relative; display: inline-block; }
+
+  /* captions (screen space, only the push applies) */
+  .cap { position: absolute; left: 1190px; width: 680px; font-size: 92px; font-weight: 700; letter-spacing: -.03em; line-height: 1.02; }
+  .v .cap { left: 80px; width: 920px; font-size: 100px; }
+  .cap .ln { display: block; overflow: hidden; padding-bottom: .08em; }
+  .cap .ln > span { display: inline-block; }
+  .key { color: var(--accent); }
+
+  #cursor { position: absolute; left: 0; top: 0; width: 44px; height: 44px; transform-origin: 6px 4px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="dark"></div>
+  <div id="world">
+    <div id="hook" class="abs">
+      <span class="mask"><span class="w">Speaking</span></span>
+      <span class="mask"><span class="w">up</span></span>
+      <span class="mask"><span class="w">feels</span></span>
+      <span class="mask"><span class="w" id="risky">risky</span></span>
+    </div>
+
+    <div id="card" class="abs card">
+      <div class="pane stack" id="p1">
+        <div><div class="steplbl">Step 1 of 2 · About you</div><div class="bars"><i class="on"></i><i></i></div></div>
+        <div><div class="lbl">Unit <span>· required</span></div><div class="field ph" id="unit">e.g. Alpha Coy, 21 Bde</div></div>
+        <p class="muted tiny">Everything below is optional. Share only what you're comfortable with.</p>
+        <div class="grid2">
+          <div style="grid-column: span 2"><div class="lbl">Full name</div><div class="field"></div></div>
+          <div><div class="lbl">Rank</div><div class="field"></div></div>
+          <div><div class="lbl">Army number</div><div class="field"></div></div>
+          <div style="grid-column: span 2"><div class="lbl">Phone <span>· only if you want a reply</span></div><div class="field"></div></div>
+        </div>
+        <div class="slot" id="slotNext" style="margin-top: 8px"></div>
+      </div>
+      <div class="pane" id="p2">
+        <div class="steplbl">Step 2 of 2 · Your message</div><div class="bars"><i class="on"></i><i class="on"></i></div>
+        <div class="chip row" style="height: 36px; border-radius: 8px; padding: 0 12px; font-size: 14px; justify-content: space-between">
+          <span><span class="muted">From:</span> <b>Name not given · Alpha Coy</b></span><span class="muted" style="text-decoration: underline">Edit</span>
+        </div>
+        <div class="lbl" style="margin-top: 16px; margin-bottom: 8px">Type</div>
+        <div class="chips"><div id="cComplaint">Complaint</div><div>Suggestion</div><div id="slotWelfare">Welfare</div><div>Other</div></div>
+        <div class="lbl" style="margin-top: 16px">Message <span>· required</span></div>
+        <div class="field ph" id="body" style="height: 162px; align-items: flex-start; padding-top: 10px; white-space: normal; line-height: 1.5">Say what's on your mind. Be as clear as you can.</div>
+        <div class="chip row photorow" id="photoRow" style="margin-top: 16px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span><b>Add photos</b> <span class="muted">· up to 3, optional</span></span>
+        </div>
+        <div id="thumb">
+          <svg width="96" height="64" viewBox="0 0 96 64"><rect width="96" height="64" fill="#7d8b6a"/><rect y="40" width="96" height="24" fill="#5b5a44"/>
+            <rect x="30" y="16" width="34" height="30" rx="3" fill="#b9bfb0"/><rect x="30" y="16" width="34" height="6" fill="#9aa190"/>
+            <path d="M47 46 q-3 8 0 14 q3-6 0-14" fill="#4a6b8a"/></svg>
+          <svg id="pin" width="18" height="24" viewBox="0 0 18 24"><path d="M9 23 C9 23 1 13 1 8.5 A8 8 0 0 1 17 8.5 C17 13 9 23 9 23z" fill="#e5484d" stroke="#fff" stroke-width="1.5"/><circle cx="9" cy="8.5" r="3" fill="#fff"/></svg>
+        </div>
+        <p class="muted tiny" style="margin-top: 6px">Hidden location and phone details are removed from photos before sending.</p>
+        <div class="chip locknote" style="margin-top: 16px">Locked on this device before it leaves. Only <b>the commanding officer</b> can unlock it. Once sent, you can't view, edit or delete it.</div>
+        <div class="row" style="margin-top: 16px; gap: 8px">
+          <div class="chip slot row" style="width: 46px; justify-content: center; font-weight: 600">←</div>
+          <div class="slot" id="slotDrop" style="flex: 1"></div>
+        </div>
+      </div>
+    </div>
+
+    <svg id="box" class="abs" viewBox="0 0 240 240">
+      <g id="boxIn">
+        <rect x="36" y="100" width="168" height="112" rx="16" fill="rgba(20,26,15,.85)" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+        <rect x="80" y="95" width="80" height="10" rx="5" fill="rgba(0,0,0,.6)"/>
+        <path id="shackle" d="M108 150 v-12 a12 12 0 0 1 24 0 v12" fill="none" stroke-width="6" stroke-linecap="round"/>
+        <rect id="lockBody" x="100" y="148" width="40" height="34" rx="7"/>
+        <circle cx="120" cy="163" r="3.5" fill="#1b1f12"/><path d="M120 165 v7" stroke="#1b1f12" stroke-width="3" stroke-linecap="round"/>
+      </g>
+    </svg>
+
+    <div id="cipher" class="abs"><div id="cipherIn"></div></div>
+
+    <div id="owner" class="abs">
+      <svg class="abs" style="left: 0; top: 0; overflow: visible" width="1920" height="1080">
+        <path id="oShackle" d="M928 336 v-40 a32 32 0 0 1 64 0 v40" fill="none" stroke="#c9d1b5" stroke-width="14" stroke-linecap="round"/>
+      </svg>
+      <div id="pass" class="abs"></div>
+      <div class="abs irow card" id="r0"><div class="meta"><span class="pill new" id="r0new">NEW</span><span class="pill chip">Welfare</span><b class="sc" data-t="Name not given"></b><span class="muted">· <span class="sc" data-t="Alpha Coy"></span></span><span class="muted">· 1 photo</span><span class="muted" style="margin-left: auto">24 Oct 2026, 21:14</span></div><div class="prev sc" data-t="The water tank in block C has been leaking for three weeks."></div></div>
+      <div class="abs irow card" id="r1"><div class="meta"><span class="pill new">NEW</span><span class="pill chip">Suggestion</span><b class="sc" data-t="Chinedu Okafor"></b><span class="muted">· <span class="sc" data-t="Bravo Coy, 21 Bde"></span></span><span class="muted" style="margin-left: auto">24 Oct 2026, 19:02</span></div><div class="prev sc" data-t="Could we get a small reading room in the barracks? Many of us are writing exams"></div></div>
+      <div class="abs irow card" id="r2"><div class="meta"><span class="pill new">NEW</span><span class="pill chip">Complaint</span><b class="sc" data-t="Name not given"></b><span class="muted">· <span class="sc" data-t="Signals Pl"></span></span><span class="muted" style="margin-left: auto">24 Oct 2026, 16:47</span></div><div class="prev sc" data-t="Duty roster has not been rotated fairly this month. Same people keep getting"></div></div>
+    </div>
+
+    <div id="detail" class="abs card">
+      <div class="row" style="justify-content: space-between; margin-bottom: 16px; height: 34px">
+        <span class="muted" style="font-size: 14px; text-decoration: underline">← Back to inbox</span>
+        <div id="statusSlot"></div>
+      </div>
+      <dl>
+        <div><dt>Name</dt><dd>Not given</dd></div><div><dt>Rank</dt><dd>Not given</dd></div><div><dt>Army number</dt><dd>Not given</dd></div>
+        <div><dt>Unit</dt><dd>Alpha Coy</dd></div><div><dt>Phone (for reply)</dt><dd>Not given</dd></div><div><dt>Type</dt><dd>Welfare</dd></div>
+      </dl>
+      <hr>
+      <div class="row" style="align-items: flex-start; gap: 20px">
+        <p id="dbody" style="flex: 1">The water tank in block C has been leaking for three weeks.</p>
+        <svg width="144" height="96" viewBox="0 0 96 64" style="border-radius: 8px; flex-shrink: 0"><rect width="96" height="64" fill="#7d8b6a"/><rect y="40" width="96" height="24" fill="#5b5a44"/><rect x="30" y="16" width="34" height="30" rx="3" fill="#b9bfb0"/><rect x="30" y="16" width="34" height="6" fill="#9aa190"/><path d="M47 46 q-3 8 0 14 q3-6 0-14" fill="#4a6b8a"/></svg>
+      </div>
+      <div id="dnotes" class="chip">
+        <div class="lbl">Your private notes <span>(locked like the messages)</span></div>
+        <div class="field ph" id="noteText" style="margin-top: 8px">e.g. Spoke to the QM, tank fixed on Monday.</div>
+      </div>
+    </div>
+
+    <svg id="logo" class="abs" viewBox="0 0 512 512">
+      <rect id="logoBg" width="512" height="512" rx="112" fill="#2f3a24"/>
+      <path id="logoShackle" d="M168 216v-44a88 88 0 0 1 176 0v44" fill="none" stroke="#c8b35a" stroke-width="40" stroke-linecap="round" pathLength="1"/>
+    </svg>
+    <div id="endText" class="abs">
+      <div class="ln-mask" style="overflow: hidden; padding-bottom: .08em"><div class="t" id="eT">Suggestion Box</div></div>
+      <div style="overflow: hidden"><div class="p" id="eP">Say it straight · It stays <span class="key">sealed</span></div></div>
+      <div style="overflow: hidden"><div class="l" id="eL">link coming soon</div></div>
+    </div>
+
+    <div id="note" class="abs"><div id="noteLines"><i></i><i></i><i></i></div><div id="noteFold"></div><span id="noteLabel"></span></div>
+    <!-- the logo's slot sits on top of the note (the note is the logo's lock body) -->
+    <svg id="logoTop" class="abs" viewBox="0 0 512 512"><rect id="logoSlot" x="196" y="304" width="120" height="22" rx="11" fill="#2f3a24"/></svg>
+  </div>
+
+  <div id="overlay"></div>
+  <svg id="cursor" viewBox="0 0 44 44"><path d="M6 4 L6 34 L14 26 L20 40 L26 37 L20 24 L31 24 Z" fill="#f1f3ea" stroke="#141a0f" stroke-width="2.5" stroke-linejoin="round"/></svg>
+  <div id="fade"></div>
+  <svg width="0" height="0" style="position: absolute"><filter id="mb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="mbg" stdDeviation="0 0"/></filter></svg>
+</div>
+
+<script>
+"use strict";
+const MODE = new URLSearchParams(location.search).get("mode") === "v" ? "v" : "h";
+if (MODE === "v") document.documentElement.classList.add("v");
+const SW = MODE === "v" ? 1080 : 1920, SH = MODE === "v" ? 1920 : 1080;
+const $ = (s) => document.querySelector(s);
+const CIPHERTEXT = "a6vXrtmN1shoWD6D+3U6ImdJ7CNuaUUDI/RegP74aWWNSUdSW3hnjGJUc+xI/fqkqkp7lcQLkb1ZA9IUyovSqQLdhXPO8JFlBtJCwYfheKyr2ZA6I/snhB+zoQp7ypkmTFPgG71SOXK260j089NZ+4GwJLlq3m0mL41J5Id/V0lU/3TMdjJp1k9CR+Mb2ZfUntVdN8TesSldPKeplD8WkKUo3SnLnt4834ie/aiaUsON1kri0RFvE++HRdeoUiUvEf7APLHre3+Ru3U2F+Fu";
+
+/* ---------- easing, all pure functions of time ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, d) => clamp((t - a) / d);
+const expo = (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p));
+const expoIn = (p) => (p <= 0 ? 0 : p >= 1 ? 1 : Math.pow(2, 10 * (p - 1)));
+// Damped spring, zeta 0.75: about 2.8% overshoot, settled by ~dur.
+function spring(t, start, dur = 0.45) {
+  const x = t - start;
+  if (x <= 0) return 0;
+  if (x >= dur * 1.6) return 1;
+  const w = 9.5 / dur, z = 0.75, wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * x) * (Math.cos(wd * x) + (z * w / wd) * Math.sin(wd * x));
+}
+const EASE = {
+  spring: (t, a, d) => spring(t, a, d),
+  expo: (t, a, d) => expo(seg(t, a, d)),
+  in: (t, a, d) => expoIn(seg(t, a, d)),
+  lin: (t, a, d) => seg(t, a, d),
+};
+// keys: [{t, v:{...}}, {t, d, e, v:{...}}...]. Each key eases from the value at its own start time.
+function track(t, keys, n = keys.length) {
+  if (n === 1 || t < keys[1].t) return { ...keys[0].v };
+  let i = n - 1;
+  while (keys[i].t > t) i--;
+  const k = keys[i], from = track(k.t, keys, i), p = EASE[k.e || "spring"](t, k.t, k.d || 0.45), out = { ...from };
+  for (const key in k.v) {
+    const b = typeof k.v[key] === "function" ? k.v[key](t) : k.v[key];
+    out[key] = typeof b === "number" ? lerp(from[key], b, p) : (p > 0.5 ? b : from[key]);
+  }
+  return out;
+}
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgb = (o, a = 1) => `rgba(${o.r | 0},${o.g | 0},${o.b | 0},${a})`;
+const C = (h) => { const [r, g, b] = hex(h); return { r, g, b }; };
+// deterministic "random" for scrambles
+const hash = (a, b) => { let x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/* ---------- layout measured once (world coords), never per frame ---------- */
+const S = {};
+function rectOf(el) {
+  const r = el.getBoundingClientRect(), w = $("#world").getBoundingClientRect();
+  return { x: r.left - w.left, y: r.top - w.top, w: r.width, h: r.height };
+}
+function init() {
+  // cipher lines (real ciphertext from the app's own encryption, wrapped)
+  const ci = $("#cipherIn");
+  const text = (CIPHERTEXT + CIPHERTEXT.split("").reverse().join("")).repeat(2);
+  for (let i = 0; i < 16; i++) {
+    const d = document.createElement("div");
+    d.className = "cl"; d.innerHTML = `<b>${text.slice(i * 46, i * 46 + 46)}</b>`;
+    ci.appendChild(d);
+  }
+  for (let i = 0; i < 8; i++) $("#pass").appendChild(document.createElement("i"));
+  $("#world").style.transform = "none";
+  ["#p1", "#p2"].forEach((s) => ($(s).style.transform = "none"));
+  S.risky = rectOf($("#risky"));
+  S.card = rectOf($("#card"));
+  S.p1h = $("#p1").offsetHeight + 2; S.p2h = $("#p2").offsetHeight + 2;
+  $("#p2").style.left = "0px";
+  S.next = rectOf($("#slotNext")); S.welfare = rectOf($("#slotWelfare")); S.drop = rectOf($("#slotDrop"));
+  S.unit = rectOf($("#unit")); S.body = rectOf($("#body")); S.photo = rectOf($("#photoRow"));
+  S.r = [0, 1, 2].map((i) => { const el = $("#r" + i); el.style.top = 560 + i * 100 + "px"; return rectOf(el); });
+  S.detail = rectOf($("#detail")); S.status = rectOf($("#statusSlot")); S.noteText = rectOf($("#noteText"));
+  // box art: viewBox 240 drawn at 480px from (720,320) -> 2x
+  S.boxLock = { x: 720 + 200, y: 320 + 296, w: 80, h: 68 };
+  S.ownerLock = { x: 900, y: 330, w: 120, h: 96 };
+  S.cipherLine = (t) => ({ x: 510, y: 300 + 3 * 60 - cipherScroll(t), w: 900, h: 60 });
+  const k = 280 / 512;
+  S.logoLock = { x: 820 + 104 * k, y: 270 + 216 * k, w: 304 * k, h: 200 * k, r: 36 * k };
+  document.querySelectorAll(".sc").forEach((el) => (el.textContent = el.dataset.t));
+  // frame the form from its measured height so step 2 (the taller one) always fits
+  const fit = (h) => (SH - 120) / (h * 1.04);
+  CAM[1].wy = S.card.y + S.p1h / 2; CAM[1].z = Math.min(CAM[1].z, fit(S.p1h));
+  CAM[2].wy = S.card.y + S.p2h / 2; CAM[2].z = Math.min(CAM[2].z, fit(S.p2h));
+  S.ready = true;
+}
+const cipherScroll = (t) => Math.max(0, t - 8) * 70; // world px per second
+
+/* ---------- camera: world point (wx,wy) lands on screen (sx,sy) at zoom z ---------- */
+const H = MODE === "h";
+const CAM = [ // each scene springs from the previous scene's END value (so it starts at the zoom the last one ended on)
+  { t: 0, wx: 960, wy: 540, z: 1, sx: SW / 2, sy: SH / 2 },
+  { t: 2, wx: 960, wy: 470, z: H ? 1.5 : 1.95, sx: H ? 620 : 540, sy: H ? 560 : 1180 },
+  { t: 4, wx: 960, wy: 540, z: H ? 1.42 : 1.85, sx: H ? 620 : 540, sy: H ? 560 : 1190 },
+  { t: 6, wx: 960, wy: 570, z: H ? 1.45 : 1.75, sx: H ? 640 : 540, sy: H ? 560 : 1160 },
+  { t: 8, wx: 960, wy: 540, z: H ? 1.05 : 1.08, sx: H ? 660 : 540, sy: H ? 560 : 1180 },
+  { t: 10, wx: 960, wy: 580, z: H ? 1.22 : 1.3, sx: H ? 650 : 540, sy: H ? 560 : 1160 },
+  { t: 12, wx: 960, wy: 520, z: H ? 1.3 : 1.38, sx: H ? 640 : 540, sy: H ? 560 : 1160 },
+  { t: 14, wx: 960, wy: 500, z: H ? 1.1 : 1.25, sx: SW / 2, sy: H ? 540 : 900 },
+];
+const PAYOFF = 1.07; // extra push on the biggest beat (bar 7 downbeat)
+// zoom a scene ends on: its framing zoom x the 1.04 push (x the payoff push for bar 7)
+const endZ = (i) => CAM[i].z * 1.04 * (i === 6 ? PAYOFF : 1);
+function cam(t) {
+  let i = CAM.length - 1;
+  while (CAM[i].t > t) i--;
+  const c = CAM[i], prev = i ? CAM[i - 1] : c;
+  const p = i ? spring(t, c.t, 0.6) : 1;                 // reframe from the previous scene
+  const push = 1 + 0.04 * clamp((t - c.t) / 2);          // 1.00 -> 1.04 across the scene
+  const z0 = i ? endZ(i - 1) / (c.z) : 1;                // start exactly where the last scene ended
+  let z = c.z * lerp(z0, 1, p) * push;
+  if (i === 6) z *= lerp(1, PAYOFF, spring(t, 12, 0.5));
+  return { wx: lerp(prev.wx, c.wx, p), wy: lerp(prev.wy, c.wy, p), sx: lerp(prev.sx, c.sx, p), sy: lerp(prev.sy, c.sy, p), z };
+}
+const toScreen = (c, x, y) => ({ x: c.sx + (x - c.wx) * c.z, y: c.sy + (y - c.wy) * c.z });
+
+/* ---------- the note ---------- */
+const PAPER = C("#f4f1e6"), ACC = C("#c8b35a"), CARD = C("#1e2618"), LOCKM = C("#c9d1b5");
+const R = (r, extra = {}) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...extra });
+function noteKeys() {
+  const paperAt = (cx, cy, w = 150, h = 190) => ({ x: cx - w / 2, y: cy - h / 2, w, h });
+  const rk = S.risky;
+  const boxC = { cx: 960, cy: 320 + 150 };
+  return [
+    { t: 0, v: { ...paperAt(2250, rk.y + rk.h / 2), rad: 6, rot: -10, ...PAPER, paper: 1 } },
+    { t: 1.5, d: 0.3, e: "expo", v: { ...paperAt(rk.x + rk.w / 2 + 40, rk.y + rk.h / 2), rot: -4 } },
+    // unfold into the form card
+    { t: 2.0, d: 0.45, v: { ...R(S.card, { h: S.p1h }), rad: 16, rot: 0, ...CARD, paper: 0 } },
+    // collapse into the Next button, uncovering the form behind it
+    { t: 2.45, d: 0.4, e: "expo", v: { ...R(S.next), rad: 12, ...ACC } },
+    { t: 3.68, d: 0.32, e: "expo", v: { ...R(S.welfare), rad: 8 } }, // lands on the Welfare click (4.0)
+    { t: 5.7, d: 0.35, v: { ...R(S.drop), rad: 12 } },
+    // fold back into a sealed note above the slot
+    { t: 6.05, d: 0.4, e: "expo", v: { ...paperAt(boxC.cx, boxC.cy, 76, 52), rad: 5, rot: -3, ...PAPER, paper: 1 } },
+    { t: 6.5, d: 0.42, e: "in", v: { y: 320 + 220, rot: 0 } },
+    // reappears as the padlock body, then stretches into one line of ciphertext
+    { t: 7.9, d: 0.01, e: "lin", v: { ...R(S.boxLock), rad: 14, ...ACC, paper: 0 } },
+    { t: 8.0, d: 0.45, e: "expo", v: { x: () => S.cipherLine(8.45).x, y: (t) => S.cipherLine(t).y, w: 900, h: 60, rad: 10 } },
+    { t: 8.46, d: 0.01, e: "lin", v: { y: (t) => S.cipherLine(t).y } },
+    // contracts into the owner's padlock
+    { t: 10.0, d: 0.42, v: { ...R(S.ownerLock), rad: 18 } },
+    // becomes the message's status pill
+    { t: 11.5, d: 0.42, v: { ...R(S.status), rad: 17 } },
+    // becomes the logo
+    { t: 14.0, d: 0.5, v: { x: S.logoLock.x, y: S.logoLock.y, w: S.logoLock.w, h: S.logoLock.h, rad: S.logoLock.r } },
+  ];
+}
+let NK = null;
+const LABELS = [ // [from, to, text, px]
+  [2.8, 3.66, "Next →", 18], [4.0, 5.7, "Welfare", 14], [5.98, 6.05, "Drop it in the box", 18],
+  [11.85, 12.0, "New", 14], [12.06, 14.0, "✓ Resolved", 14],
+];
+function noteAt(t) {
+  const n = track(t, NK);
+  // visible except while it is inside the box (6.92 -> 7.9)
+  n.vis = t >= 1.5 && !(t > 6.92 && t < 7.9);
+  return n;
+}
+
+/* ---------- captions ---------- */
+const CAPS = [
+  { a: 2.6, b: 3.9, lines: ["Only your <span class=key>unit</span>", "is required"] },
+  { a: 5.5, b: 6.45, lines: ["Location", "<span class=key>removed</span>"] },
+  { a: 7.0, b: 7.95, lines: ["<span class=key>Locked</span> on", "your phone"] },
+  { a: 8.5, b: 9.95, lines: ["We <span class=key>can't</span> read", "it either"] },
+  { a: 10.75, b: 11.95, lines: ["<span class=key>Only</span> the CO"] },
+  { a: 12.0, b: 13.95, lines: ["<span class=key>Heard</span>"], big: true },
+];
+function buildCaps() {
+  const ov = $("#overlay");
+  CAPS.forEach((c, i) => {
+    const d = document.createElement("div");
+    d.className = "cap"; d.id = "cap" + i;
+    if (c.big) d.style.fontSize = (H ? 200 : 210) + "px";
+    d.innerHTML = c.lines.map((l) => `<span class="ln"><span>${l}</span></span>`).join("");
+    ov.appendChild(d);
+    c.el = d; c.h = d.offsetHeight;
+  });
+}
+
+/* ---------- render one frame ---------- */
+function setT(el, s) { el.style.transform = s; }
+function show(el, on) { el.style.visibility = on ? "visible" : "hidden"; }
+function clipY(el, top, bottom) { el.style.clipPath = `inset(${top * 100}% 0 ${bottom * 100}% 0)`; }
+
+function render(t) {
+  const c = cam(t);
+  setT($("#world"), `translate(${c.sx}px,${c.sy}px) scale(${c.z}) translate(${-c.wx}px,${-c.wy}px)`);
+  setT($("#overlay"), `scale(${1 + 0.04 * ((t % 2) / 2)})`); // big type gets the same 1.00 -> 1.04 push
+
+  // background: wipe to near-black for the owner side (bar 6 on)
+  const dk = expo(seg(t, 10.0, 0.45));
+  $("#dark").style.clipPath = `inset(0 ${(1 - dk) * 100}% 0 0)`;
+
+  /* bar 1: hook */
+  const words = document.querySelectorAll("#hook .w");
+  words.forEach((w, i) => {
+    const a = i * 0.5, inP = expo(seg(t, a, 0.4));
+    let y = (1 - inP) * 105, x = 0;
+    if (i === 3) { // knocked out by the note
+      const hit = expo(seg(t, 1.72, 0.3));
+      y += hit * 110; x = hit * -30;
+    } else y -= expo(seg(t, 2.0 + i * 0.05, 0.3)) * 110; // leaves upward as the card opens
+    setT(w, `translate(${x}%, ${y}%)`);
+  });
+  show($("#hook"), t < 2.6);
+
+  /* bars 2-3: the form */
+  const cardOn = t >= 2.4 && t < 6.6;
+  show($("#card"), cardOn);
+  if (cardOn) {
+    const sw = expo(seg(t, 3.6, 0.4));
+    $("#card").style.height = lerp(S.p1h, S.p2h, sw) + "px";
+    setT($("#p1"), `translateX(${-sw * 40}px)`);
+    $("#p1").style.clipPath = `inset(0 ${sw * 100}% 0 0)`;
+    setT($("#p2"), `translateX(${(1 - sw) * 40}px)`);
+    $("#p2").style.clipPath = `inset(0 0 0 ${(1 - sw) * 100}%)`;
+    // card folds away downward after the drop click
+    const fold = expo(seg(t, 6.05, 0.4));
+    $("#card").style.clipPath = `inset(${fold * 100}% 0 0 0 round 16px)`;
+    // typing the unit (beats 2-3 of bar 2)
+    const u = "Alpha Coy", nu = Math.floor(clamp((t - 2.6) / 0.6) * u.length);
+    const unit = $("#unit");
+    if (t < 2.55) { unit.textContent = "e.g. Alpha Coy, 21 Bde"; unit.classList.add("ph"); }
+    else { unit.textContent = u.slice(0, nu) + (nu < u.length && Math.floor(t * 4) % 2 === 0 ? "|" : nu < u.length ? "|" : ""); unit.classList.remove("ph"); }
+    unit.style.boxShadow = t >= 2.5 && t < 3.5 ? "0 0 0 2px rgba(241,243,234,.6)" : "none";
+    // Complaint is selected until Welfare is clicked
+    $("#cComplaint").style.boxShadow = t < 4.0 ? "inset 0 0 0 1.5px rgba(241,243,234,.55)" : "none";
+    // message typing (bar 3, beats 2-3)
+    const msg = "The water tank in block C has been leaking for three weeks.";
+    const nm = Math.floor(clamp((t - 4.5) / 0.85) * msg.length), body = $("#body");
+    if (t < 4.45) { body.textContent = "Say what's on your mind. Be as clear as you can."; body.classList.add("ph"); }
+    else { body.textContent = msg.slice(0, nm) + (nm < msg.length ? "|" : ""); body.classList.remove("ph"); }
+    body.style.boxShadow = t >= 4.45 && t < 5.4 ? "0 0 0 2px rgba(241,243,234,.6)" : "none";
+    // photo grows in (beat 4), then its location pin is wiped away by a mask
+    const ph = spring(t, 5.5, 0.4);
+    setT($("#thumb"), `scale(${ph})`); $("#thumb").style.transformOrigin = "0 0";
+    $("#pin").style.clipPath = `inset(0 0 0 ${expo(seg(t, 5.78, 0.3)) * 100}%)`;
+  }
+
+  /* bar 4: the box */
+  const boxOn = t >= 6.0 && t < 8.5;
+  show($("#box"), boxOn);
+  if (boxOn) {
+    const rise = expo(seg(t, 6.1, 0.45)), out = expo(seg(t, 8.0, 0.4));
+    $("#box").style.clipPath = `inset(${(1 - rise) * 100}% 0 ${out * 100}% 0)`;
+    setT($("#box"), `translateY(${(1 - rise) * 40}px)`);
+    const snap = spring(t, 7.0, 0.35);
+    $("#shackle").setAttribute("transform", `translate(0 ${-9 * (1 - snap)})`);
+    const locked = t >= 7.0;
+    $("#shackle").setAttribute("stroke", locked ? "#c8b35a" : "#c9d1b5");
+    const lf = seg(t, 7.0, 0.2);
+    $("#lockBody").setAttribute("fill", rgb({ r: lerp(LOCKM.r, ACC.r, lf), g: lerp(LOCKM.g, ACC.g, lf), b: lerp(LOCKM.b, ACC.b, lf) }));
+    // box nudges when the note lands
+    setT($("#boxIn"), `translateY(${(1 - spring(t, 6.9, 0.4)) * (t > 6.9 ? 3 : 0)}px)`);
+  }
+
+  /* bar 5: ciphertext */
+  const ciOn = t >= 7.95 && t < 10.5;
+  show($("#cipher"), ciOn);
+  if (ciOn) {
+    setT($("#cipherIn"), `translateY(${-cipherScroll(t)}px)`);
+    document.querySelectorAll(".cl").forEach((l, i) => {
+      const rv = expo(seg(t, 8.0 + Math.abs(i - 3) * 0.06, 0.35));
+      l.style.clipPath = `inset(0 ${(1 - rv) * 100}% 0 0)`;
+      l.style.color = i === 3 && t >= 8.3 ? "#1b1f12" : "";
+    });
+    const out = expo(seg(t, 10.0, 0.4));
+    $("#cipher").style.clipPath = `inset(0 0 0 ${out * 100}%)`;
+  }
+
+  /* bar 6: owner side */
+  const owOn = t >= 9.95 && t < 12.2;
+  show($("#owner"), owOn);
+  if (owOn) {
+    const sh = expo(seg(t, 10.1, 0.4)), open = spring(t, 10.75, 0.4);
+    const os = $("#oShackle");
+    os.style.clipPath = `inset(${(1 - sh) * 100}% 0 ${expo(seg(t, 11.45, 0.25)) * 100}% 0)`; // leaves as the message opens
+    os.setAttribute("transform", `translate(0 ${-22 * open})`);
+    os.setAttribute("stroke", t >= 10.75 ? "#c8b35a" : "#c9d1b5");
+    const pw = expo(seg(t, 10.0, 0.35));
+    $("#pass").style.clipPath = `inset(0 ${(1 - pw) * 100}% 0 0 round 8px)`;
+    $("#pass").querySelectorAll("i").forEach((d, i) => setT(d, `scale(${spring(t, 10.15 + i * 0.075, 0.25)})`));
+    const passOut = expo(seg(t, 11.35, 0.3));
+    $("#pass").style.opacity = 1;
+    if (passOut > 0) $("#pass").style.clipPath = `inset(0 0 0 ${passOut * 100}% round 8px)`;
+    [0, 1, 2].forEach((i) => {
+      const el = $("#r" + i), u = expo(seg(t, 10.85 + i * 0.08, 0.4));
+      const gone = i ? expo(seg(t, 11.45 + i * 0.04, 0.3)) : 0;
+      el.style.clipPath = `inset(0 0 ${(1 - u) * 100}% 0 round 12px)`;
+      setT(el, `translateY(${(1 - u) * -16 + gone * 60}px)`);
+      el.style.visibility = gone >= 1 || (i === 0 && t >= 11.55) ? "hidden" : "visible";
+      // unscramble left to right
+      const prog = clamp((t - 11.0 - i * 0.06) / 0.55);
+      el.querySelectorAll(".sc").forEach((s, k) => {
+        const tx = s.dataset.t;
+        let o = "";
+        for (let j = 0; j < tx.length; j++) {
+          const ch = tx[j];
+          if (ch === " " || j / tx.length < prog) o += ch;
+          else o += B64[Math.floor(hash(j + k * 50 + i * 500, Math.floor(t * 24)) * 64)];
+        }
+        s.textContent = o;
+      });
+    });
+  }
+
+  /* bar 7: the message, opened (grows out of the first inbox row) */
+  const dtOn = t >= 11.5 && t < 14.4;
+  show($("#detail"), dtOn);
+  if (dtOn) {
+    const g = expo(seg(t, 11.5, 0.4)), D = S.detail, r0 = S.r[0];
+    const top = lerp(r0.y - D.y, 0, g), left = lerp(r0.x - D.x, 0, g), right = lerp(D.x + D.w - (r0.x + r0.w), 0, g);
+    const bottom = lerp(D.y + D.h - (r0.y + r0.h), 0, g);
+    const out = expo(seg(t, 14.0, 0.35));
+    $("#detail").style.clipPath = `inset(${top + out * D.h}px ${right}px ${bottom}px ${left}px round 16px)`;
+    const nt = "Spoke to the QM, tank fixed on Monday", n = Math.floor(clamp((t - 12.5) / 0.9) * nt.length);
+    const f = $("#noteText");
+    if (t < 12.45) { f.textContent = "e.g. Spoke to the QM, tank fixed on Monday."; f.classList.add("ph"); }
+    else { f.textContent = nt.slice(0, n) + (n < nt.length ? "|" : ""); f.classList.remove("ph"); }
+    f.style.boxShadow = t >= 12.45 && t < 13.6 ? "0 0 0 2px rgba(241,243,234,.6)" : "none";
+  }
+
+  /* bar 8: the logo and end card */
+  const lgOn = t >= 14.0;
+  show($("#logo"), lgOn); show($("#endText"), lgOn); show($("#logoTop"), lgOn);
+  if (lgOn) {
+    const bg = spring(t, 14.25, 0.5);
+    $("#logoBg").setAttribute("transform", `translate(256 300) scale(${lerp(0.55, 1, bg)}) translate(-256 -300)`);
+    $("#logoBg").style.clipPath = `inset(${(1 - expo(seg(t, 14.25, 0.4))) * 50}% round 112px)`;
+    const sl = expo(seg(t, 14.4, 0.45));
+    $("#logoShackle").setAttribute("stroke-dasharray", "1"); $("#logoShackle").setAttribute("stroke-dashoffset", String(1 - sl));
+    setT($("#logoSlot"), `scaleX(${expo(seg(t, 14.6, 0.35))})`); $("#logoSlot").style.transformOrigin = "256px 315px";
+    [["#eT", 14.75], ["#eP", 15.0], ["#eL", 15.2]].forEach(([s, a]) => setT($(s), `translateY(${(1 - expo(seg(t, a, 0.45))) * 110}%)`));
+  }
+
+  /* the note */
+  const n = noteAt(t), note = $("#note");
+  show(note, n.vis);
+  if (n.vis) {
+    // clip whatever has gone below the box slot
+    const slotY = 320 + 2 * 100;
+    const below = t > 6.5 && t < 7.5 ? Math.max(0, n.y + n.h - slotY) : 0;
+    Object.assign(note.style, {
+      transform: `translate(${n.x}px, ${n.y}px) rotate(${n.rot}deg)`, width: n.w + "px", height: n.h + "px",
+      borderRadius: n.rad + "px", background: rgb(n), clipPath: below ? `inset(0 0 ${below}px 0)` : "none",
+    });
+    $("#noteLines").style.opacity = n.paper > 0.5 ? 1 : 0;
+    $("#noteFold").style.opacity = n.paper > 0.5 ? 1 : 0;
+    // the note gets written during the hook (lines draw in)
+    $("#noteLines").querySelectorAll("i").forEach((l, i) => setT(l, `scaleX(${t < 6 ? expo(seg(t, 1.55 + i * 0.12, 0.25)) : 1})`));
+    // label: shows only while the note sits in a role
+    let lab = null;
+    for (const L of LABELS) if (t >= L[0] && t < L[1]) lab = L;
+    const nl = $("#noteLabel");
+    if (lab) {
+      nl.textContent = lab[2]; nl.style.fontSize = lab[3] + "px";
+      const inP = expo(seg(t, lab[0], 0.15)), outP = expo(seg(t, lab[1] - 0.08, 0.08));
+      nl.style.clipPath = `inset(${outP * 100}% 0 ${(1 - inP) * 100}% 0)`;
+    } else nl.textContent = "";
+    // pressed on clicks
+    const press = [3.5, 4.0, 6.0, 12.0].reduce((m, ct) => Math.max(m, t >= ct && t < ct + 0.2 ? Math.sin(seg(t, ct, 0.2) * Math.PI) : 0), 0);
+    note.style.scale = 1 - press * 0.04;
+    // directional motion blur from the note's own speed (never on readable text)
+    const p0 = track(t - 1 / 120, NK), vx = (n.x - p0.x) * c.z, vy = (n.y - p0.y) * c.z;
+    const bx = Math.min(10, Math.abs(vx) * 0.14), by = Math.min(10, Math.abs(vy) * 0.14);
+    if ((bx > 0.6 || by > 0.6) && !lab) { $("#mbg").setAttribute("stdDeviation", `${bx.toFixed(2)} ${by.toFixed(2)}`); note.style.filter = "url(#mb)"; }
+    else note.style.filter = "none";
+  }
+
+  /* captions: lines rise in through a mask, leave upward with their own timing */
+  CAPS.forEach((cp) => {
+    const on = t >= cp.a - 0.01 && t < cp.b + 0.01;
+    show(cp.el, on);
+    if (!on) return;
+    cp.el.style.top = (H ? SH / 2 - cp.h / 2 : 200) + "px";
+    cp.el.querySelectorAll(".ln > span").forEach((s, i) => {
+      const inP = expo(seg(t, cp.a + i * 0.08, 0.45)), outP = expo(seg(t, cp.b - 0.3 + i * 0.04, 0.3));
+      setT(s, `translateY(${(1 - inP) * 105 - outP * 110}%)`);
+    });
+  });
+
+  /* cursor (screen space, follows its target through the camera) */
+  renderCursor(t, c);
+
+  // last half-beat: fade to black (the only fade in the film)
+  $("#fade").style.opacity = seg(t, 15.5, 0.5);
+}
+
+const CLICKS = [ // [time of click, target rect getter]
+  [2.5, () => S.unit], [3.5, () => S.next], [4.0, () => S.welfare], [4.45, () => S.body],
+  [5.45, () => S.photo], [6.0, () => S.drop], [12.0, () => S.status], [12.45, () => S.noteText],
+];
+function renderCursor(t, c) {
+  const cur = $("#cursor");
+  const on = (t >= 2.25 && t < 6.35) || (t >= 11.6 && t < 13.2);
+  show(cur, on);
+  if (!on) return;
+  const centre = (r) => toScreen(c, r.x + r.w * 0.6, r.y + r.h * 0.55);
+  let i = 0;
+  while (i < CLICKS.length - 1 && CLICKS[i + 1][0] - 0.35 <= t) i++;
+  const [ct, get] = CLICKS[i], here = centre(get());
+  let pos = here;
+  const nextK = CLICKS[i + 1];
+  if (nextK && t > nextK[0] - 0.35) {
+    const p = expo(seg(t, nextK[0] - 0.35, 0.3)), there = centre(nextK[1]());
+    pos = { x: lerp(here.x, there.x, p), y: lerp(here.y, there.y, p) };
+  }
+  // entering: grows in from the lower right
+  const firstT = t < 6.35 ? 2.25 : 11.6, enter = expo(seg(t, firstT, 0.3));
+  if (t < (t < 6.35 ? 2.5 : 12.0) - 0.0) {
+    const tgt = centre(t < 6.35 ? S.unit : S.status);
+    pos = { x: lerp(tgt.x + 260, tgt.x, enter), y: lerp(tgt.y + 200, tgt.y, enter) };
+  }
+  const leave = expo(seg(t, t < 6.35 ? 6.15 : 13.0, 0.2));
+  const click = CLICKS.reduce((m, k) => Math.max(m, t >= k[0] && t < k[0] + 0.16 ? Math.sin(seg(t, k[0], 0.16) * Math.PI) : 0), 0);
+  const s = lerp(0.4, 1, enter) * (1 - leave) * (1 - click * 0.18);
+  setT(cur, `translate(${pos.x - 6}px, ${pos.y - 4}px) scale(${s})`);
+}
+
+let readyP = null;
+window.seek = async (t) => {
+  if (!readyP) readyP = document.fonts.ready.then(() => { init(); NK = noteKeys(); buildCaps(); });
+  await readyP;
+  render(t);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return t;
+};
+window.DURATION = 16;
+window.MODE = MODE;
+// opening the file in a browser plays it once, for a quick look
+if (!navigator.webdriver) {
+  const t0 = performance.now();
+  const loop = async () => { const t = ((performance.now() - t0) / 1000) % 16; await window.seek(t); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
