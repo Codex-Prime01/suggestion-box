@@ -1,0 +1,35 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Set up your key{% endblock %}
+{% block page %}key-setup{% endblock %}
+{% block owner_content %}
+<div class="mx-auto max-w-xl">
+  <section id="step-passphrase" class="card space-y-4 rounded-2xl p-6">
+    <h1 class="font-title text-3xl">Step 1: Make your key</h1>
+    <p class="muted">Every message is locked so that <strong>only you</strong> can open it. Not the website host, not the developer, nobody.
+      Your key is made right here in your browser and protected by a <strong>passphrase</strong> only you know.</p>
+    <div id="setup-error" class="rounded-lg bg-red-600/90 px-3 py-2 text-sm text-white" hidden></div>
+    <div>
+      <label for="pass1" class="mb-1 block text-sm font-semibold">Passphrase</label>
+      <input id="pass1" type="password" autocomplete="new-password" class="field">
+      <p class="muted mt-1 text-xs">At least 10 characters. A short sentence is easy to remember and hard to guess. This is <em>different</em> from your login password.</p>
+    </div>
+    <div>
+      <label for="pass2" class="mb-1 block text-sm font-semibold">Type it again</label>
+      <input id="pass2" type="password" autocomplete="new-password" class="field">
+    </div>
+    <button id="make-key" type="button" class="btn w-full rounded-xl px-4 py-3 font-bold">Make my key</button>
+  </section>
+
+  <section id="step-backup" class="card space-y-4 rounded-2xl p-6" hidden>
+    <h1 class="font-title text-3xl">Step 2: Save your backup key</h1>
+    <p class="muted">If you ever forget your passphrase, this backup key is the <strong>only</strong> way back in.
+      Write it down or print it, and keep it somewhere locked. <strong>Anyone who has it can read your messages.</strong></p>
+    <div id="backup-code" class="backup-code chip rounded-lg p-4 text-center text-lg break-words"></div>
+    <button id="download-backup" type="button" class="chip w-full rounded-xl px-4 py-2 font-semibold">⬇ Download as a text file</button>
+    <label class="flex items-start gap-2 text-sm"><input id="confirm-saved" type="checkbox" class="mt-1">
+      <span>I have saved my backup key somewhere safe. I understand that if I lose <strong>both</strong> my passphrase and this key, my messages are gone forever.</span></label>
+    <div id="setup-error-2" class="rounded-lg bg-red-600/90 px-3 py-2 text-sm text-white" hidden></div>
+    <button id="finish-setup" type="button" class="btn w-full rounded-xl px-4 py-3 font-bold" disabled>Finish setup</button>
+  </section>
+</div>
+{% endblock %}

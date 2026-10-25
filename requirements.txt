@@ -1,0 +1,10 @@
+Django>=5.2,<5.3
+dj-database-url>=2.2
+whitenoise>=6.7
+python-dotenv>=1.0
+gunicorn>=23.0; sys_platform != "win32"
+psycopg[binary]>=3.2
+PyNaCl>=1.5
+django-otp>=1.5
+segno>=1.6
+django-axes>=7

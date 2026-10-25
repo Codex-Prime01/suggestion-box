@@ -1,0 +1,12 @@
+{
+  "name": "suggestion-box-css",
+  "private": true,
+  "scripts": {
+    "css": "tailwindcss -i assets/tailwind.css -o static/css/app.css --minify",
+    "css:watch": "tailwindcss -i assets/tailwind.css -o static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.1.11",
+    "tailwindcss": "4.1.11"
+  }
+}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Delivered — {{ box.title }}{% endblock %}
+{% block body %}
+<main class="mx-auto flex min-h-screen max-w-md items-center px-4">
+  <div class="card w-full rounded-2xl p-8 text-center shadow-xl">
+    <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full btn text-3xl" aria-hidden="true">✓</div>
+    <h1 class="font-title text-3xl">Delivered</h1>
+    <p class="muted mt-3">Your message is in the box. It's sealed now — nobody but {{ box.recipient }} can open it.</p>
+    <a href="{% url 'box:drop' %}" class="mt-6 inline-block text-sm underline muted">Send another message</a>
+  </div>
+</main>
+{% endblock %}

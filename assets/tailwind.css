@@ -1,0 +1,6 @@
+/* Tailwind source. Build the real CSS with:  npm run css   (writes static/css/app.css)
+   You only need Node when you CHANGE Tailwind classes in templates/JS.
+   The built file is committed, so the server never needs Node. */
+@import "tailwindcss";
+@source "../templates";
+@source "../static/js";

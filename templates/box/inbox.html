@@ -1,0 +1,46 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Inbox — {{ box.title }}{% endblock %}
+{% block page %}inbox{% endblock %}
+{% block owner_content %}
+{% if not box.is_open %}
+  <div class="card mb-4 rounded-xl p-4 text-sm">⛔ Your box is <strong>closed</strong>. <a class="underline" href="{% url 'box:settings' %}">Open Settings</a> to reopen it.</div>
+{% endif %}
+
+<div class="mb-5 grid grid-cols-3 gap-3">
+  <div class="card rounded-xl p-4"><div class="muted text-sm">New</div><div class="text-3xl font-bold">{{ counts.new }}</div></div>
+  <div class="card rounded-xl p-4"><div class="muted text-sm">Resolved</div><div class="text-3xl font-bold">{{ counts.resolved }}</div></div>
+  <div class="card rounded-xl p-4"><div class="muted text-sm">Total</div><div class="text-3xl font-bold">{{ counts.total }}</div></div>
+</div>
+
+<form method="get" class="card mb-5 grid gap-2 rounded-xl p-3 sm:grid-cols-5">
+  <input id="search" type="search" placeholder="Search name, unit, words…" class="field sm:col-span-2" autocomplete="off">
+  <select name="status" class="field">
+    <option value="">Any status</option>
+    {% for v, l in status_choices %}<option value="{{ v }}" {% if filters.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <select name="category" class="field">
+    <option value="">Any type</option>
+    {% for v, l in category_choices %}<option value="{{ v }}" {% if filters.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <button class="btn rounded-lg px-3 py-2 font-semibold">Filter</button>
+</form>
+
+<div class="space-y-2">
+  {% for m in messages_list %}
+    <a href="{% url 'box:detail' m.pk %}" data-payload="{{ m.payload }}" class="card block rounded-xl p-4 hover:brightness-110">
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        {% if m.status == "new" %}<span class="btn rounded px-2 py-0.5 text-xs font-bold">NEW</span>{% elif m.status == "resolved" %}<span class="chip rounded px-2 py-0.5 text-xs">✓ Resolved</span>{% endif %}
+        <span class="chip rounded px-2 py-0.5">{{ m.get_category_display }}</span>
+        <span class="js-who font-semibold">🔒 Unlocking…</span>
+        <span class="muted">· <span class="js-unit"></span></span>
+        {% if m.photo_count %}<span class="muted">· 📷 {{ m.photo_count }}</span>{% endif %}
+        <span class="muted ml-auto">{{ m.created_at|date:"d M Y, H:i" }}</span>
+      </div>
+      <p class="js-preview mt-2 line-clamp-2 muted"></p>
+    </a>
+  {% empty %}
+    <div class="card rounded-xl p-8 text-center muted">The box is empty.</div>
+  {% endfor %}
+  <div id="no-match" class="card rounded-xl p-8 text-center muted" hidden>No messages match your search.</div>
+</div>
+{% endblock %}

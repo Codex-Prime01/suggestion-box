@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Too many tries{% endblock %}
+{% block body %}
+<main class="mx-auto flex min-h-screen max-w-md items-center px-4">
+  <div class="card w-full rounded-2xl p-8 text-center shadow-xl">
+    <h1 class="font-title text-3xl">Too many tries</h1>
+    <p class="muted mt-3">This login is locked for a while after too many wrong passwords. Try again later.</p>
+  </div>
+</main>
+{% endblock %}

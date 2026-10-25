@@ -1,0 +1,27 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Set up 2-step login{% endblock %}
+{% block page %}otp{% endblock %}
+{% block owner_content %}
+<div class="mx-auto max-w-lg">
+  <form method="post" class="card space-y-5 rounded-2xl p-6">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div>
+      <p class="muted text-xs font-semibold uppercase tracking-wider">Security · one time only</p>
+      <h1 class="font-title mt-1 text-3xl">Set up 2-step login</h1>
+      <p class="muted mt-2 text-sm">Even if someone steals your password, they can't get in without your phone.</p>
+    </div>
+    <ol class="space-y-4 text-sm">
+      <li><strong>1.</strong> Install an authenticator app on your phone: <em>Google Authenticator</em>, <em>Microsoft Authenticator</em> or <em>Authy</em>.</li>
+      <li><strong>2.</strong> In the app, tap <strong>+</strong> and scan this code:
+        <div class="mx-auto mt-3 w-52 overflow-hidden rounded-xl bg-white p-2">{{ qr_svg }}</div>
+        <p class="muted mt-2 text-center text-xs">Can't scan? Type this key instead:<br><span class="backup-code text-sm">{{ secret }}</span></p>
+      </li>
+      <li><strong>3.</strong> Type the 6-digit code the app shows:</li>
+    </ol>
+    {{ form.code }}
+    {% for e in form.code.errors %}<p class="text-sm text-red-400">{{ e }}</p>{% endfor %}
+    <button class="btn w-full rounded-xl px-4 py-3 font-bold">Confirm</button>
+  </form>
+</div>
+{% endblock %}

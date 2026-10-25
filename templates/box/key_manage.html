@@ -1,0 +1,30 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Your key{% endblock %}
+{% block page %}key-manage{% endblock %}
+{% block owner_content %}
+<div class="mx-auto max-w-xl space-y-4">
+  <section class="card space-y-3 rounded-2xl p-6">
+    <h1 class="font-title text-3xl">Your key</h1>
+    <p class="muted text-sm">Made on {{ box.key_created_at|date:"d M Y" }}. Messages are locked with it. Only you can open them.</p>
+  </section>
+
+  <form id="change-pass-form" class="card space-y-3 rounded-2xl p-6">
+    <h2 class="font-semibold">Change passphrase</h2>
+    <div id="change-error" class="rounded-lg bg-red-600/90 px-3 py-2 text-sm text-white" hidden></div>
+    <div id="change-ok" class="rounded-lg btn px-3 py-2 text-sm" hidden>Passphrase changed. Your backup key still works.</div>
+    <input id="cp1" type="password" autocomplete="new-password" class="field" placeholder="New passphrase (10+ characters)">
+    <input id="cp2" type="password" autocomplete="new-password" class="field" placeholder="New passphrase again">
+    <button class="btn rounded-lg px-4 py-2 font-semibold">Change passphrase</button>
+  </form>
+
+  <section class="card space-y-3 rounded-2xl p-6">
+    <h2 class="font-semibold">Backup key</h2>
+    <p class="muted text-sm">Lost your copy? You can see it again here. Make sure nobody is looking at your screen.</p>
+    <div class="flex gap-2">
+      <button id="show-backup" type="button" class="chip rounded-lg px-4 py-2 font-semibold">Show backup key</button>
+      <button id="download-backup" type="button" class="chip rounded-lg px-4 py-2 font-semibold">⬇ Download</button>
+    </div>
+    <div id="backup-wrap" hidden><div id="backup-code" class="backup-code chip rounded-lg p-4 text-center text-lg break-words"></div></div>
+  </section>
+</div>
+{% endblock %}

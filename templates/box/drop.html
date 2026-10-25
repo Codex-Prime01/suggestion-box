@@ -1,0 +1,118 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Drop a message — {{ box.title }}{% endblock %}
+{% block body %}
+<main class="mx-auto max-w-lg px-4 py-8 sm:py-14">
+  <header class="mb-5 flex items-center gap-3">
+    <a href="{% url 'box:intro' %}" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl btn" aria-label="Back to the intro page">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/><path d="M9 15h6"/></svg>
+    </a>
+    <div class="min-w-0">
+      <h1 class="font-title truncate text-2xl sm:text-3xl">{{ box.title }}</h1>
+      <p class="muted truncate text-sm">Goes straight to {{ box.recipient }}</p>
+    </div>
+  </header>
+
+  <noscript>
+    <div class="card mb-4 rounded-xl p-4 text-center">This page needs JavaScript switched on, because your message is locked on your phone before it is sent.</div>
+  </noscript>
+
+  <form id="drop-form" method="post" action="{% url 'box:drop' %}" data-public-key="{{ box.public_key }}"
+        class="card rounded-2xl p-5 shadow-xl sm:p-6" novalidate>
+    {% csrf_token %}
+
+    {# progress #}
+    <div class="mb-5" aria-hidden="true">
+      <div class="mb-2 flex justify-between text-xs font-semibold uppercase tracking-wider muted">
+        <span id="step-label">Step 1 of 2 · About you</span>
+      </div>
+      <div class="grid grid-cols-2 gap-1.5">
+        <span class="h-1.5 rounded-full btn"></span>
+        <span id="bar-2" class="h-1.5 rounded-full chip transition-colors"></span>
+      </div>
+    </div>
+
+    <div id="form-error" class="mb-4 rounded-lg bg-red-600/90 px-3 py-2 text-sm text-white" role="alert" hidden></div>
+
+    {# ---------- STEP 1: about you ---------- #}
+    <section id="step-1" class="step space-y-3" aria-labelledby="step-label">
+      <div>
+        <label for="unit" class="mb-1 block text-sm font-semibold">Unit <span class="muted font-normal">· required</span></label>
+        <input id="unit" name="unit" maxlength="120" required autocomplete="off" class="field" placeholder="e.g. Alpha Coy, 21 Bde">
+      </div>
+      <p class="muted text-xs">Everything below is optional. Share only what you're comfortable with.</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label for="sender_name" class="mb-1 block text-sm font-semibold">Full name</label>
+          <input id="sender_name" name="sender_name" maxlength="120" autocomplete="off" class="field">
+        </div>
+        <div>
+          <label for="rank" class="mb-1 block text-sm font-semibold">Rank</label>
+          <input id="rank" name="rank" maxlength="60" autocomplete="off" class="field">
+        </div>
+        <div>
+          <label for="service_number" class="mb-1 block text-sm font-semibold">Army number</label>
+          <input id="service_number" name="service_number" maxlength="40" autocomplete="off" class="field">
+        </div>
+        <div class="col-span-2">
+          <label for="phone" class="mb-1 block text-sm font-semibold">Phone <span class="muted font-normal">· only if you want a reply</span></label>
+          <input id="phone" name="phone" type="tel" maxlength="30" autocomplete="off" class="field">
+        </div>
+      </div>
+      <button type="button" id="to-step-2" class="btn mt-2 w-full rounded-xl px-4 py-3 text-lg font-bold">Next →</button>
+    </section>
+
+    {# ---------- STEP 2: the message ---------- #}
+    <section id="step-2" class="step space-y-4" hidden>
+      <button type="button" id="from-chip" class="chip flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm">
+        <span class="min-w-0 truncate"><span class="muted">From:</span> <strong id="from-summary"></strong></span>
+        <span class="muted shrink-0 pl-2 underline">Edit</span>
+      </button>
+
+      <fieldset>
+        <legend class="mb-2 block text-sm font-semibold">Type</legend>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {% for v, l in categories %}
+          <label class="cursor-pointer">
+            <input type="radio" name="category" value="{{ v }}" class="peer sr-only" {% if forloop.first %}checked{% endif %}>
+            <span class="choice chip block rounded-lg px-2 py-2 text-center text-sm font-semibold">{{ l }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <div>
+        <label for="body" class="mb-1 block text-sm font-semibold">Message <span class="muted font-normal">· required</span></label>
+        <textarea id="body" name="body" rows="6" maxlength="5000" required class="field" placeholder="Say what's on your mind. Be as clear as you can."></textarea>
+      </div>
+
+      <div>
+        <label for="photos" class="chip flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span><strong>Add photos</strong> <span class="muted">· up to 3, optional</span></span>
+        </label>
+        <input id="photos" name="photos" type="file" accept="image/*" multiple class="sr-only">
+        <ul id="photo-list" class="mt-2 space-y-1 text-sm muted"></ul>
+        <p class="muted mt-1 text-xs">Hidden location and phone details are removed from photos before sending.</p>
+      </div>
+
+      <div class="chip rounded-lg px-3 py-2 text-xs muted">
+        🔒 Locked on this device before it leaves. Only <strong>{{ box.recipient }}</strong> can unlock it.
+        Once sent, you can't view, edit or delete it.
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" id="to-step-1" class="chip rounded-xl px-4 py-3 font-semibold">←</button>
+        <button type="submit" class="btn flex-1 rounded-xl px-4 py-3 text-lg font-bold tracking-wide shadow">Drop it in the box</button>
+      </div>
+    </section>
+
+    <div style="position:absolute;left:-9999px" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+  </form>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/libsodium-sumo.js' %}"></script>
+<script src="{% static 'vendor/libsodium-wrappers.js' %}"></script>
+<script src="{% static 'js/sb-crypto.js' %}"></script>
+<script src="{% static 'js/drop.js' %}"></script>
+{% endblock %}

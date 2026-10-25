@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load static %}
+{% block body_attrs %}data-page="{% block page %}{% endblock %}" data-unlock-url="{% url 'box:key_unlock' %}" data-rewrap-url="{% url 'box:key_rewrap' %}"{% block extra_body_attrs %}{% endblock %}{% endblock %}
+{% block body %}
+<nav class="card sticky top-0 z-10 border-x-0 border-t-0">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <a href="{% url 'box:inbox' %}" class="font-title text-xl truncate">{{ box.title }}</a>
+    <div class="flex items-center gap-2 text-sm">
+      {% if box.has_key %}
+      <a href="{% url 'box:inbox' %}" class="rounded-lg px-3 py-1.5 chip">Inbox</a>
+      <a href="{% url 'box:settings' %}" class="rounded-lg px-3 py-1.5 chip">Settings</a>
+      <a href="{% url 'box:key_manage' %}" class="rounded-lg px-3 py-1.5 chip">Key</a>
+      {% endif %}
+      <form method="post" action="{% url 'box:logout' %}" data-logout>{% csrf_token %}<button class="rounded-lg px-3 py-1.5 chip">Log out</button></form>
+    </div>
+  </div>
+</nav>
+<main class="mx-auto max-w-5xl px-4 py-6">
+  {% for m in messages %}
+    <div class="mb-4 rounded-lg btn px-3 py-2 text-sm">{{ m }}</div>
+  {% endfor %}
+  {% block owner_content %}{% endblock %}
+</main>
+{% endblock %}
+{% block scripts %}
+{{ key_data|json_script:"box-key" }}
+<script src="{% static 'vendor/libsodium-sumo.js' %}"></script>
+<script src="{% static 'vendor/libsodium-wrappers.js' %}"></script>
+<script src="{% static 'js/sb-crypto.js' %}"></script>
+<script src="{% static 'js/owner.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Message — {{ box.title }}{% endblock %}
+{% block page %}detail{% endblock %}
+{% block owner_content %}
+<a href="{% url 'box:inbox' %}" class="muted text-sm underline">← Back to inbox</a>
+
+<article id="message" data-payload="{{ msg.payload }}" class="card mt-3 rounded-2xl p-6">
+  <dl class="grid gap-3 text-sm sm:grid-cols-3">
+    <div><dt class="muted">Name</dt><dd id="f-name" class="font-semibold">…</dd></div>
+    <div><dt class="muted">Rank</dt><dd id="f-rank" class="font-semibold">…</dd></div>
+    <div><dt class="muted">Army number</dt><dd id="f-service_number" class="font-semibold">…</dd></div>
+    <div><dt class="muted">Unit</dt><dd id="f-unit" class="font-semibold">…</dd></div>
+    <div><dt class="muted">Phone (for reply)</dt><dd id="f-phone" class="font-semibold">…</dd></div>
+    <div><dt class="muted">Type</dt><dd class="font-semibold">{{ msg.get_category_display }}</dd></div>
+    <div class="sm:col-span-3"><dt class="muted">Received</dt><dd class="font-semibold">{{ msg.created_at|date:"l, d F Y \a\t H:i" }}</dd></div>
+  </dl>
+  <hr class="my-5 opacity-20">
+  <p id="body" class="whitespace-pre-line text-lg leading-relaxed">🔒 Unlocking…</p>
+
+  {% if attachments %}
+  <h2 class="mt-6 mb-2 font-semibold">Photos</h2>
+  <div class="grid gap-3 sm:grid-cols-3">
+    {% for a in attachments %}
+      <div data-attachment-url="{% url 'box:attachment' a.pk %}" class="chip flex min-h-32 items-center justify-center rounded-lg p-2 text-sm muted">🔒 Unlocking photo…</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>
+
+<form id="note-form" method="post" class="card mt-4 space-y-3 rounded-2xl p-6">
+  {% csrf_token %}
+  <h2 class="font-semibold">Your private notes <span class="muted text-sm font-normal">(locked like the messages)</span></h2>
+  <div>{{ form.status }}</div>
+  <textarea id="note-text" rows="3" class="field" placeholder="e.g. Spoke to the QM, tank fixed on Monday."></textarea>
+  {{ form.owner_note }}
+  <button class="btn rounded-lg px-4 py-2 font-semibold">Save</button>
+</form>
+
+<form id="delete-form" method="post" action="{% url 'box:delete' msg.pk %}" class="mt-4 text-right">
+  {% csrf_token %}
+  <button class="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white">Delete forever</button>
+</form>
+{% endblock %}

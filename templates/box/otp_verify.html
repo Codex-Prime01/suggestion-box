@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}2-step login{% endblock %}
+{% block body %}
+<main class="mx-auto flex min-h-screen max-w-sm items-center px-4">
+  <form method="post" class="card w-full space-y-4 rounded-2xl p-7 shadow-xl">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <h1 class="font-title text-center text-3xl">Enter your code</h1>
+    <p class="muted text-center text-sm">Open your authenticator app and type the 6-digit code. Lost your phone? Type one of your backup codes.</p>
+    {{ form.code }}
+    {% for e in form.code.errors %}<p class="text-sm text-red-400">{{ e }}</p>{% endfor %}
+    <button class="btn w-full rounded-xl px-4 py-3 font-bold">Continue</button>
+  </form>
+</main>
+{% endblock %}

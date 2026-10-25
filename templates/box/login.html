@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Owner login{% endblock %}
+{% block body %}
+<main class="mx-auto flex min-h-screen max-w-sm items-center px-4">
+  <form method="post" class="card w-full space-y-4 rounded-2xl p-7 shadow-xl">
+    {% csrf_token %}
+    <h1 class="font-title text-3xl text-center">Owner login</h1>
+    {% if form.errors %}<div class="rounded-lg bg-red-600/90 px-3 py-2 text-sm text-white">Wrong username or password.</div>{% endif %}
+    <div>
+      <label class="mb-1 block text-sm font-semibold" for="id_username">Username</label>
+      <input class="w-full rounded-lg border border-black/15 bg-white/90 px-3 py-2 text-slate-900" type="text" name="username" id="id_username" autocomplete="username" required autofocus>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-semibold" for="id_password">Password</label>
+      <input class="w-full rounded-lg border border-black/15 bg-white/90 px-3 py-2 text-slate-900" type="password" name="password" id="id_password" autocomplete="current-password" required>
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn w-full rounded-xl px-4 py-3 font-bold">Open the box</button>
+  </form>
+</main>
+{% endblock %}

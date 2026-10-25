@@ -1,0 +1,60 @@
+/* Fonts are bundled in static/fonts (SIL Open Font License), no Google requests. */
+@font-face { font-family: "Saira"; font-weight: 400; font-display: swap; src: url("../fonts/saira-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Saira"; font-weight: 500; font-display: swap; src: url("../fonts/saira-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Saira"; font-weight: 600; font-display: swap; src: url("../fonts/saira-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Saira"; font-weight: 700; font-display: swap; src: url("../fonts/saira-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Saira Stencil One"; font-weight: 400; font-display: swap; src: url("../fonts/saira-stencil-one-latin-400-normal.woff2") format("woff2"); }
+
+/*
+  Themes. The oga picks one in Settings. To add a new theme:
+  1. add a .theme-<name> block below
+  2. add ("<name>", "Label") to BoxSettings.THEME_CHOICES in box/models.py
+  3. run makemigrations + migrate
+*/
+:root { --font-body: "Saira", system-ui, sans-serif; --font-title: "Saira Stencil One", "Saira", sans-serif; }
+body { font-family: var(--font-body); }
+.font-title { font-family: var(--font-title); letter-spacing: .02em; }
+
+.page-bg { min-height: 100vh; background-color: var(--bg); background-image: var(--bg-image); background-size: cover; background-position: center; background-attachment: fixed; color: var(--text); }
+.card { background: var(--card); border: 1px solid var(--card-border); backdrop-filter: blur(6px); }
+.btn { background: var(--accent); color: var(--accent-text); }
+.btn:hover { filter: brightness(1.08); }
+.muted { color: var(--muted); }
+.chip { background: var(--chip); }
+
+.theme-camo {
+  --bg: #2f3a24; --text: #f1f3ea; --muted: #c9d1b5; --card: rgba(20, 26, 15, .78); --card-border: rgba(255,255,255,.12);
+  --accent: #c8b35a; --accent-text: #1b1f12; --chip: rgba(255,255,255,.08);
+  --bg-image:
+    radial-gradient(ellipse at 20% 30%, #4b5b33 0 18%, transparent 19%),
+    radial-gradient(ellipse at 70% 20%, #3a4628 0 14%, transparent 15%),
+    radial-gradient(ellipse at 60% 75%, #5a5034 0 16%, transparent 17%),
+    radial-gradient(ellipse at 15% 85%, #222b18 0 15%, transparent 16%),
+    radial-gradient(ellipse at 90% 60%, #222b18 0 12%, transparent 13%);
+}
+.theme-night {
+  --bg: #0d1117; --text: #e6edf3; --muted: #8b98a5; --card: rgba(22, 27, 34, .9); --card-border: rgba(255,255,255,.1);
+  --accent: #3fb950; --accent-text: #04140a; --chip: rgba(255,255,255,.06);
+  --bg-image: radial-gradient(circle at 50% -20%, #1f3b2a 0, transparent 55%);
+}
+.theme-desert {
+  --bg: #d8c39a; --text: #2b2216; --muted: #6b5a40; --card: rgba(255, 250, 238, .88); --card-border: rgba(0,0,0,.1);
+  --accent: #7a5c2e; --accent-text: #fffaf0; --chip: rgba(0,0,0,.06);
+  --bg-image: linear-gradient(160deg, #e8d6ae 0%, #cdb07a 100%);
+}
+.theme-plain {
+  --bg: #f4f5f2; --text: #1d2318; --muted: #5d6656; --card: #ffffff; --card-border: rgba(0,0,0,.08);
+  --accent: #3d5a2a; --accent-text: #ffffff; --chip: rgba(0,0,0,.05);
+  --bg-image: none;
+}
+
+/* Form fields (used on the drop page) */
+.field { width: 100%; border-radius: .5rem; border: 1px solid rgba(0,0,0,.15); background: rgba(255,255,255,.92); padding: .5rem .75rem; color: #0f172a; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+input[type=file]::file-selector-button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: .5rem; padding: .45rem .8rem; margin-right: .75rem; font-weight: 600; cursor: pointer; }
+.backup-code { font-family: ui-monospace, Consolas, monospace; letter-spacing: .05em; word-spacing: .3em; }
+[hidden] { display: none !important; }
+
+/* Category picker on the drop form */
+input:checked + .choice { background: var(--accent); color: var(--accent-text); }
+input:focus-visible + .choice { box-shadow: 0 0 0 2px var(--accent); }

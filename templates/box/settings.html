@@ -1,0 +1,30 @@
+{% extends "box/owner_base.html" %}
+{% block title %}Settings — {{ box.title }}{% endblock %}
+{% block page %}settings{% endblock %}
+{% block owner_content %}
+<div class="card mb-4 rounded-2xl p-5">
+  <div class="muted text-sm">Share this link with your soldiers:</div>
+  <div class="mt-1 break-all font-mono text-lg">{{ share_url }}</div>
+  <div class="mt-3 text-sm">Status:
+    {% if box.ready %}<strong>✅ Open and taking messages</strong>{% else %}<strong>⛔ Closed</strong>. Tick "Is open" below.{% endif %}
+  </div>
+  <div class="mt-2 text-sm">New-message alerts: {% if alerts_on %}<strong>✅ On</strong>{% else %}<strong>Off</strong> <span class="muted">(ask your developer to set ALERT_EMAIL or a Telegram bot)</span>{% endif %}</div>
+</div>
+
+<form method="post" class="card space-y-4 rounded-2xl p-6">
+  {% csrf_token %}
+  {% for field in form %}
+    <div>
+      {% if field.widget_type == "checkbox" %}
+        <label class="flex items-center gap-2 font-semibold">{{ field }} {{ field.label }}</label>
+      {% else %}
+        <label for="{{ field.id_for_label }}" class="mb-1 block text-sm font-semibold">{{ field.label }}</label>
+        {{ field }}
+      {% endif %}
+      {% if field.help_text %}<p class="muted mt-1 text-xs">{{ field.help_text }}</p>{% endif %}
+      {% for e in field.errors %}<p class="mt-1 text-sm text-red-400">{{ e }}</p>{% endfor %}
+    </div>
+  {% endfor %}
+  <button class="btn rounded-lg px-4 py-2 font-semibold">Save settings</button>
+</form>
+{% endblock %}
