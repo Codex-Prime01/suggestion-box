@@ -133,6 +133,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024
 
 # ---- Two-step login (2FA) ----
 OTP_TOTP_ISSUER = os.getenv("OTP_ISSUER", "Suggestion Box")
+# 2-step login (authenticator app) for the oga. Off = username + password only.
+# Messages stay locked either way: reading them always needs his key passphrase (or backup key).
+OWNER_2FA = env_bool("OWNER_2FA", False)
 
 # ---- Login lockout (django-axes) ----
 AXES_FAILURE_LIMIT = int(os.getenv("AXES_FAILURE_LIMIT", "5"))

@@ -15,6 +15,7 @@ urlpatterns = [
     path("manifest.webmanifest", views.manifest, name="manifest"),
 
     # Owner only
+    path(f"{P}/manifest.webmanifest", views.owner_manifest, name="owner_manifest"),
     path(f"{P}/login/", auth_views.LoginView.as_view(template_name="box/login.html", redirect_authenticated_user=False), name="login"),
     path(f"{P}/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path(f"{P}/2fa/setup/", views.otp_setup, name="otp_setup"),

@@ -78,12 +78,12 @@ def owner_only(view):
 
 
 def owner_required(view):
-    """Owner + passed 2FA + has an encryption key. Anyone else gets 403 — even superusers."""
+    """Owner + has an encryption key (+ passed 2FA when OWNER_2FA is on). Anyone else gets 403 — even superusers."""
 
     @wraps(view)
     @owner_only
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_verified():
+        if settings.OWNER_2FA and not request.user.is_verified():
             target = "box:otp_verify" if has_confirmed_totp(request.user) else "box:otp_setup"
             return redirect(f"{reverse(target)}?next={request.get_full_path()}")
         if not BoxSettings.load().has_key and view.__name__ != "key_setup":
@@ -143,6 +143,8 @@ def sent(request):
 @owner_only
 def otp_setup(request):
     """First login: link an authenticator app (Google Authenticator, Authy, Microsoft Authenticator...)."""
+    if not settings.OWNER_2FA:  # switched off: nothing to set up, so nobody gets stuck on an old link
+        return redirect("box:inbox")
     user = request.user
     if has_confirmed_totp(user):
         return redirect("box:otp_verify")
@@ -178,6 +180,8 @@ def otp_setup(request):
 
 @owner_only
 def otp_verify(request):
+    if not settings.OWNER_2FA:
+        return redirect("box:inbox")
     if not has_confirmed_totp(request.user):
         return redirect("box:otp_setup")
     if request.user.is_verified():
@@ -332,6 +336,25 @@ def manifest(request):
     data = {
         "name": box.title, "short_name": box.title[:12], "start_url": reverse("box:intro"),
         "display": "standalone", "background_color": "#2f3a24", "theme_color": "#2f3a24",
+        "icons": [
+            {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/icons/icon.svg", "sizes": "any", "type": "image/svg+xml"},
+        ],
+    }
+    return JsonResponse(data, content_type="application/manifest+json")
+
+
+def owner_manifest(request):
+    """The oga's own app: installed from his pages, it opens straight to his inbox (or login).
+    Lives under the secret path, so it reveals nothing new. Not login-protected on purpose:
+    browsers fetch manifests without cookies."""
+    box = BoxSettings.load()
+    inbox = reverse("box:inbox")
+    data = {
+        "id": inbox, "name": f"{box.title} inbox", "short_name": "Box inbox",
+        "start_url": inbox, "scope": inbox,
+        "display": "standalone", "background_color": "#141a0f", "theme_color": "#141a0f",
         "icons": [
             {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
             {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},

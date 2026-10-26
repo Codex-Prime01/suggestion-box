@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Owner login{% endblock %}
+{% block manifest %}{% url 'box:owner_manifest' %}{% endblock %}
 {% block body %}
 <main class="mx-auto flex min-h-screen max-w-sm items-center px-4">
   <form method="post" class="card w-full space-y-4 rounded-2xl p-7 shadow-xl">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}{% load static %}
+{% block manifest %}{% url 'box:owner_manifest' %}{% endblock %}
 {% block body_attrs %}data-page="{% block page %}{% endblock %}" data-unlock-url="{% url 'box:key_unlock' %}" data-rewrap-url="{% url 'box:key_rewrap' %}"{% block extra_body_attrs %}{% endblock %}{% endblock %}
 {% block body %}
 <nav class="card sticky top-0 z-10 border-x-0 border-t-0">
@@ -15,6 +16,18 @@
   </div>
 </nav>
 <main class="mx-auto max-w-5xl px-4 py-6">
+  {# install.js shows this only when installing is possible and it isn't installed or dismissed yet #}
+  <div id="install-card" class="card mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 text-sm" hidden>
+    <div>
+      <strong>Put your inbox on your home screen</strong>
+      <p class="muted" data-other hidden>One tap opens your login. The secret link stays hidden in the icon.</p>
+      <p class="muted" data-ios hidden>On iPhone: tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" id="install-btn" class="btn rounded-lg px-3 py-1.5 font-semibold" hidden>Install</button>
+      <button type="button" id="install-dismiss" class="chip rounded-lg px-3 py-1.5">Not now</button>
+    </div>
+  </div>
   {% for m in messages %}
     <div class="mb-4 rounded-lg btn px-3 py-2 text-sm">{{ m }}</div>
   {% endfor %}
@@ -27,4 +40,5 @@
 <script src="{% static 'vendor/libsodium-wrappers.js' %}"></script>
 <script src="{% static 'js/sb-crypto.js' %}"></script>
 <script src="{% static 'js/owner.js' %}"></script>
+<script src="{% static 'js/install.js' %}"></script>
 {% endblock %}

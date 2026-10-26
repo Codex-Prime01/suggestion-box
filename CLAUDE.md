@@ -8,7 +8,7 @@ A confidential suggestion/complaint box for soldiers, personalised to one oga (c
 ## Golden rules (don't break these)
 1. **Never** add a way for senders to see their sent messages.
 2. **Never** register `Message`/`Attachment` in the Django admin.
-3. Every owner view uses `@owner_required` (owner + 2-step login + key). Non-owners get 403, superusers included. Only the 2FA pages use `@owner_only`.
+3. Every owner view uses `@owner_required` (owner + key, plus 2-step login when `OWNER_2FA=True`; off by default at the client's request). Non-owners get 403, superusers included. Only the 2FA pages use `@owner_only`.
 4. **Never** send plain message content to the server. New sender fields go inside the encrypted `payload` JSON (bump `v` if the shape changes).
 5. **Never** log or email message content. Notifications say "new message", nothing more.
 6. **Never** store the sender's IP with a message.

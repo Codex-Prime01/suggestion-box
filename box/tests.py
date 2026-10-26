@@ -256,6 +256,45 @@ class OwnerSideTests(TestCase):
         self.assertIn("no-store", self.client.get(reverse("box:inbox"))["Cache-Control"])
 
 
+class PasswordOnlyLoginTests(TestCase):
+    """Default: OWNER_2FA is off, so the oga logs in with username + password only."""
+
+    def setUp(self):
+        cache.clear()
+        self.oga = User.objects.create_user("oga", password="StrongPass!234")
+        self.box, self.sk = make_box(owner=self.oga)
+
+    @override_settings(OWNER_2FA=False)
+    def test_password_alone_opens_inbox(self):
+        self.client.force_login(self.oga)
+        self.assertEqual(self.client.get(reverse("box:inbox")).status_code, 200)
+
+    @override_settings(OWNER_2FA=False)
+    def test_old_2fa_links_send_him_to_inbox(self):
+        self.client.force_login(self.oga)
+        for name in ("box:otp_setup", "box:otp_verify"):
+            self.assertRedirects(self.client.get(reverse(name)), reverse("box:inbox"))
+
+    @override_settings(OWNER_2FA=False)
+    def test_still_owner_only_without_2fa(self):
+        other = User.objects.create_superuser("boss", password="StrongPass!234")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("box:inbox")).status_code, 403)
+
+    def test_owner_app_opens_his_inbox(self):
+        m = self.client.get(reverse("box:owner_manifest")).json()
+        self.assertEqual(m["start_url"], reverse("box:inbox"))
+        self.assertEqual(m["scope"], reverse("box:inbox"))
+        # his pages point to his app; the public page keeps the soldiers' app
+        self.client.force_login(self.oga)
+        self.assertContains(self.client.get(reverse("box:inbox")), reverse("box:owner_manifest"))
+        self.assertContains(self.client.get(reverse("box:login")), reverse("box:owner_manifest"))
+        intro = self.client.get(reverse("box:intro"))
+        self.assertContains(intro, reverse("box:manifest"))
+        self.assertNotContains(intro, reverse("box:owner_manifest"))  # never leak the secret path
+
+
+@override_settings(OWNER_2FA=True)
 class TwoStepLoginTests(TestCase):
     def setUp(self):
         cache.clear()
