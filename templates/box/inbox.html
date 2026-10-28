@@ -43,4 +43,21 @@
   {% endfor %}
   <div id="no-match" class="card rounded-xl p-8 text-center muted" hidden>No messages match your search.</div>
 </div>
+
+{% if match_count %}
+<details class="card mt-6 rounded-xl p-4 text-sm">
+  <summary class="cursor-pointer font-semibold">🗑 Clear {% if filters.status or filters.category %}these{% else %}all{% endif %} messages</summary>
+  <form method="post" action="{% url 'box:clear' %}" class="mt-3 grid gap-2">
+    {% csrf_token %}
+    <input type="hidden" name="status" value="{{ filters.status }}">
+    <input type="hidden" name="category" value="{{ filters.category }}">
+    <p class="muted">
+      {% if filters.status or filters.category %}This deletes the {{ match_count }} message{{ match_count|pluralize }} in your current filter.{% else %}This deletes <strong>every</strong> message in the box ({{ match_count }}).{% endif %}
+      Photos go too. It can't be undone. The search box is ignored; only the Filter counts.
+    </p>
+    <input name="confirm" class="field" placeholder="Type DELETE to confirm" autocomplete="off" required>
+    <button class="rounded-lg bg-red-700 px-4 py-2 font-semibold text-white">Delete {{ match_count }} message{{ match_count|pluralize }} forever</button>
+  </form>
+</details>
+{% endif %}
 {% endblock %}

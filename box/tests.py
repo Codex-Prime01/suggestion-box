@@ -84,8 +84,19 @@ class SenderSideTests(TestCase):
         self.assertIn("media-src 'self'", r["Content-Security-Policy"])
 
     def test_owner_name_shows_when_set(self):
-        self.box.owner_display_name = "Lt Col A. Bello"; self.box.save()
+        self.box.owner_rank, self.box.owner_name = "Lt Col", "A. Bello"; self.box.save()
         self.assertContains(self.client.get(reverse("box:intro")), "Lt Col A. Bello")
+        self.assertContains(self.client.get(reverse("box:drop")), "Goes straight to Lt Col A. Bello")
+
+    def test_recipient_is_rank_and_name_only(self):
+        self.assertEqual(self.box.recipient, "the commanding officer")
+        self.box.owner_rank = "Lt Col"
+        self.assertEqual(self.box.recipient, "Lt Col")
+        self.box.owner_name = "A. Bello"
+        self.assertEqual(self.box.recipient, "Lt Col A. Bello")
+
+    def test_number_field_says_svcno_armyno(self):
+        self.assertContains(self.client.get(reverse("box:drop")), "SvcNo/ArmyNo")
 
     def test_manifest(self):
         r = self.client.get(reverse("box:manifest"))
@@ -229,6 +240,34 @@ class OwnerSideTests(TestCase):
         self.assertFalse(Message.objects.exists())
         self.assertFalse(Attachment.objects.exists())
 
+    def test_clear_needs_typed_confirm(self):
+        login_verified(self.client, self.oga)
+        self.client.post(reverse("box:clear"), {"confirm": "yes"})
+        self.client.post(reverse("box:clear"), {})
+        self.assertTrue(Message.objects.exists())
+
+    def test_clear_with_no_filter_deletes_all(self):
+        self.client.post(reverse("box:drop"), good_post(self.box, category="suggestion"))
+        login_verified(self.client, self.oga)
+        self.client.post(reverse("box:clear"), {"confirm": "DELETE"})
+        self.assertFalse(Message.objects.exists())
+        self.assertFalse(Attachment.objects.exists())
+
+    def test_clear_only_hits_filtered_messages(self):
+        self.client.post(reverse("box:drop"), good_post(self.box, category="suggestion"))
+        Message.objects.filter(category="complaint").update(status="resolved")
+        login_verified(self.client, self.oga)
+        self.client.post(reverse("box:clear"), {"status": "resolved", "category": "", "confirm": "DELETE"})
+        self.assertEqual(list(Message.objects.values_list("category", flat=True)), ["suggestion"])
+
+    def test_clear_is_post_and_owner_only(self):
+        login_verified(self.client, self.oga)
+        self.assertEqual(self.client.get(reverse("box:clear")).status_code, 405)
+        for user in (self.other, self.dev):
+            self.client.force_login(user)
+            self.assertEqual(self.client.post(reverse("box:clear"), {"confirm": "DELETE"}).status_code, 403)
+        self.assertTrue(Message.objects.exists())
+
     def test_rewrap_needs_same_public_key(self):
         login_verified(self.client, self.oga)
         url = reverse("box:key_rewrap")
@@ -247,8 +286,9 @@ class OwnerSideTests(TestCase):
 
     def test_owner_settings_save(self):
         login_verified(self.client, self.oga)
-        self.client.post(reverse("box:settings"), {"owner_display_name": "", "title": "T", "theme": "night", "is_open": "on"})
+        self.client.post(reverse("box:settings"), {"owner_rank": "Lt Col", "owner_name": "A. Bello", "title": "T", "theme": "night", "is_open": "on"})
         self.assertEqual(BoxSettings.load().theme, "night")
+        self.assertEqual(BoxSettings.load().recipient, "Lt Col A. Bello")
         self.assertContains(self.client.get(reverse("box:drop")), "theme-night")
 
     def test_owner_pages_not_cached(self):

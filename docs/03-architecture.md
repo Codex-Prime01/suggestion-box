@@ -55,14 +55,14 @@ Technical names: `crypto_box_seal` (X25519 + XSalsa20-Poly1305) for messages/pho
 ## What the server can and can't see
 | Can see | Can't see |
 |---|---|
-| A message arrived, when, its type (complaint/welfare…) | Name, rank, army number, unit, phone |
+| A message arrived, when, its type (complaint/welfare…) | Name, rank, SvcNo/ArmyNo, unit, phone |
 | Its status (new/read/resolved) | The message text |
 | How many photos, their size | The photos |
 | | The oga's notes |
 | | The oga's private key (it's locked) |
 
 ## Data model
-**BoxSettings** (1 row): `owner`, `owner_display_name`, `title`, `subtitle`, `theme`, `background_image_url`, `is_open`, `public_key`, `encrypted_private_key`, `key_salt`, `key_created_at`
+**BoxSettings** (1 row): `owner`, `owner_rank`, `owner_name`, `title`, `subtitle`, `theme`, `background_image_url`, `is_open`, `public_key`, `encrypted_private_key`, `key_salt`, `key_created_at`
 
 **Message**: `id` (UUID), `category`, `created_at`, `status`, `read_at`, `payload` (encrypted JSON: `{v, name, rank, service_number, unit, phone, body}`), `owner_note` (encrypted)
 

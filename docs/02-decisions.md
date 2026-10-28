@@ -15,6 +15,8 @@ Write every decision here, with the date. When the client answers, move a questi
 | 2026-10-24 | **One owner.** `owner_display_name` is optional and **left blank for now**; the site then says "the commanding officer". | Client: personalise later. |
 | 2026-10-24 | **Name, rank, army number: optional. Unit: required.** | Client: soldiers decide what to reveal, but the oga must know which unit to investigate. |
 | 2026-10-24 | **Optional phone number for replies.** No accounts, no reply inbox. | Client + Perey: "if they want contact, they drop their number." |
+| 2026-10-28 | **CO shown as rank + name only** (`owner_rank` + `owner_name`, replaces `owner_display_name`). No appointment. Number field labelled **SvcNo/ArmyNo** (officers use service number, other ranks army number). | Client voice note: the box is personal to him. |
+| 2026-10-28 | **Clear inbox button.** Deletes the current filter, or everything if no filter. Oga must type DELETE. | Perey. |
 | 2026-10-24 | **Up to 3 photos per message** as evidence. Shrunk to 1600px, re-saved as JPG in the browser (removes GPS/phone info), then encrypted. Stored in the database. | Client wants photo evidence. The database works on any host (no file storage needed). |
 | 2026-10-24 | **End-to-end encryption** (libsodium sealed boxes). Everything the sender types + photos + the oga's notes are encrypted. Only `category`, `status` and dates stay plain. | So "only the oga can read it" is actually true: not the host, not the developer. |
 | 2026-10-24 | **Backup key** shown once at setup (64 characters, downloadable). Can be shown again from the Key page while unlocked. Recovery = backup key + new passphrase. | Client: "you have to have a backup key." |

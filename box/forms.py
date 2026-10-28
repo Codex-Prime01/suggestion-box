@@ -73,9 +73,9 @@ class BoxSettingsForm(forms.ModelForm):
     class Meta:
         model = BoxSettings
         fields = [
-            "owner_display_name", "title", "subtitle", "theme", "background_image_url", "is_open",
+            "owner_rank", "owner_name", "title", "subtitle", "theme", "background_image_url", "is_open",
         ]
-        labels = {"owner_display_name": "Your name (as senders see it)"}
+        labels = {"owner_rank": "Your rank", "owner_name": "Your name"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

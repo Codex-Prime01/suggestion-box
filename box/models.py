@@ -28,10 +28,9 @@ class BoxSettings(models.Model):
     )
 
     # --- Personal touch ---
-    owner_display_name = models.CharField(
-        max_length=80, blank=True, default="",
-        help_text='Optional. How you appear to senders, e.g. "Lt Col A. Bello". Leave empty to stay generic.',
-    )
+    # Just rank + name, no appointment: the box is personal to one CO.
+    owner_rank = models.CharField(max_length=30, blank=True, default="", help_text='e.g. "Lt Col"')
+    owner_name = models.CharField(max_length=80, blank=True, default="", help_text='e.g. "A. Bello"')
     title = models.CharField(max_length=80, default="Suggestion Box")
     subtitle = models.CharField(
         max_length=200, blank=True,
@@ -81,7 +80,7 @@ class BoxSettings(models.Model):
     @property
     def recipient(self):
         """Who senders are told will read it."""
-        return self.owner_display_name or "the commanding officer"
+        return " ".join(p for p in (self.owner_rank.strip(), self.owner_name.strip()) if p) or "the commanding officer"
 
 
 class Message(models.Model):

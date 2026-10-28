@@ -13,7 +13,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -255,15 +255,21 @@ def key_manage(request):
 
 # ---------- owner: inbox ----------
 
-@owner_required
-def inbox(request):
-    qs = Message.objects.annotate(photo_count=Count("attachments"))
-    status = request.GET.get("status", "")
-    category = request.GET.get("category", "")
+def filtered_messages(status, category):
+    """Shared by the inbox and "clear", so delete hits exactly what the oga sees."""
+    qs = Message.objects.all()
     if status:
         qs = qs.filter(status=status)
     if category:
         qs = qs.filter(category=category)
+    return qs
+
+
+@owner_required
+def inbox(request):
+    status = request.GET.get("status", "")
+    category = request.GET.get("category", "")
+    qs = filtered_messages(status, category).annotate(photo_count=Count("attachments"))
     counts = Message.objects.aggregate(
         total=Count("id"),
         new=Count("id", filter=Q(status="new")),
@@ -271,6 +277,7 @@ def inbox(request):
     )
     return render(request, "box/inbox.html", {
         "messages_list": qs[:300],
+        "match_count": qs.count(),
         "counts": counts,
         "filters": {"status": status, "category": category},
         "status_choices": Message.STATUS_CHOICES,
@@ -309,6 +316,25 @@ def message_delete(request, pk):
     get_object_or_404(Message, pk=pk).delete()
     messages.success(request, "Message deleted for good.")
     return redirect("box:inbox")
+
+
+@owner_required
+@require_POST
+def messages_clear(request):
+    """Delete every message in the current filter (no filter = all of them)."""
+    status = request.POST.get("status", "")
+    category = request.POST.get("category", "")
+    back = reverse("box:inbox")
+    if status or category:
+        back += "?" + urlencode({"status": status, "category": category})
+    if request.POST.get("confirm", "").strip() != "DELETE":
+        messages.error(request, "Nothing deleted. Type DELETE in the box to confirm.")
+        return redirect(back)
+    qs = filtered_messages(status, category)
+    count = qs.count()
+    qs.delete()  # photos go too (on_delete=CASCADE)
+    messages.success(request, f"Deleted {count} message{'s' if count != 1 else ''} for good.")
+    return redirect(back)
 
 
 @owner_required

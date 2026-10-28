@@ -7,8 +7,8 @@
 - [x] Honeypot + rate limit
 
 ## Phase 2 — Client's answers + make it safe ✅ (24 Oct)
-- [x] Personalised to the oga (`owner_display_name`)
-- [x] Unit required; name/rank/army number optional; optional phone for replies
+- [x] Personalised to the oga (`owner_rank` + `owner_name`, no appointment)
+- [x] Unit required; name/rank/SvcNo/ArmyNo optional; optional phone for replies
 - [x] ~~Unit access code gate~~ (removed in phase 3 at the client's request)
 - [x] Up to 3 photos, resized + location data removed, encrypted
 - [x] End-to-end encryption with passphrase + backup key + recovery

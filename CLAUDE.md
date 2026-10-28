@@ -3,7 +3,7 @@
 Start with `CONTINUE.md` (where things stand), then `docs/`. `01-project-brief.md` explains what we're building. `02-decisions.md` lists what's decided and what's still open. `03-architecture.md` explains the encryption.
 
 ## What this is
-A confidential suggestion/complaint box for soldiers, personalised to one oga (commanding officer). `/` is an animated intro page. `/drop/` is a 2-step form: About you (unit required; name, rank, army number, phone optional), then Message (type, text, up to 3 photos). Everything is **encrypted in the sender's browser** with the oga's public key. Only the oga can read it.
+A confidential suggestion/complaint box for soldiers, personalised to one oga (commanding officer). `/` is an animated intro page. `/drop/` is a 2-step form: About you (unit required; name, rank, SvcNo/ArmyNo, phone optional), then Message (type, text, up to 3 photos). Everything is **encrypted in the sender's browser** with the oga's public key. Only the oga can read it.
 
 ## Golden rules (don't break these)
 1. **Never** add a way for senders to see their sent messages.
